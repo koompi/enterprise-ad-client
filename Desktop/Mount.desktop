@@ -1,0 +1,14 @@
+[Desktop Entry]
+Comment=Login
+Comment[en_US]=Login
+Encoding=UTF-8
+Exec=/usr/bin/client
+GenericName=Login
+GenericName[en_US]=Login
+Icon=/usr/share/pixmaps/pionuxicon.png
+MimeType=
+Name=Login
+Name[en_US]=Login
+StartupNotify=false
+Terminal=false
+Type=Application
