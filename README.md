@@ -1,4 +1,4 @@
-## Pionux Enterprise client
+## KOOMPI Enterprise client
 version v0.2.2020009
 
 # How to setup
