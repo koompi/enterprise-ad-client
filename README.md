@@ -4,10 +4,8 @@ version 0.1
 # How to setup
 
 ```
-$ sudo mkdir /opt/pionux/
-$ sudo chmod 777 /opt/pionux/
 $ git clone https://hongsea@bitbucket.org/pionux/koompi-enterprise-client.git
-$ cd koompi-enterprise-client/client-setup
+$ cd koompi-enterprise-client
 $ sudo chmod +x setup
 $ sudo ./setup
 ```

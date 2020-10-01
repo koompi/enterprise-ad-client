@@ -5,11 +5,11 @@
 
 <volume
       fstype="cifs"
-      server="addc.lan"
-      path="homes/%(USER)"
+      server="DOMAIN"
+      path="%(USER)"
       mountpoint="~/%(USER)"
       uid="1000-29999"
-      options="workgroup=ADDC,iocharset=utf8,vers=3.1.1,cruid=%(USERUID),nodfs"
+      options="workgroup=SDM,iocharset=utf8,vers=3.1.1,cruid=%(USERUID),nodfs"
 />
 
 </pam_mount>
