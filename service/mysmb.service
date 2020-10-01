@@ -1,0 +1,10 @@
+[Unit]
+Description=script description %I
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/mysmb
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

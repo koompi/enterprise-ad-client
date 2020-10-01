@@ -1,0 +1,85 @@
+#!/bin/bash
+set -x
+ipcrm -a
+for i in $(wbinfo -u);do 
+if [[ $i == $(id -u -n) ]];then
+function main(){
+
+  PASSWORD=$(yad --width=340 --center --title="Authentication required" --text="Please enter your password to access to all your data:" --image="/usr/share/pixmaps/pionuxicon.png" \
+  --form --field="Password":H --field="Comfirm":H --field="Status: $status":LBL)
+if [[ "$?" == 0 ]];then
+  PASSWP=$(echo $PASSWORD | awk -F"|" '{print $1}')
+  PASSWC=$(echo $PASSWORD | awk -F"|" '{print $2}')
+  if [[ -z "$PASSWP" ]];then 
+    yad --title="info" --center --image "dialog-question" --text="Please complete password."
+	main 
+  elif [[ -z "$PASSWC" ]];then 
+   yad --title="info" --center --image "dialog-question" --text="Please complete comfirm password."
+   main 
+  else 
+  if [[ "$PASSWP" == "$PASSWC" ]];then
+    if sudo -lS &> /dev/null << EOF
+$PASSWC
+EOF
+    then
+      for i in $(wbinfo -u);
+      do 
+        if [[ $i == "$(id -u -n)" ]];then
+    
+          username=$(id -u -n)
+          userid=$(id -u)
+          mkdir $HOME/$username
+          rm -rf $HOME/Documents
+          rm -rf $HOME/Downloads
+          rm -rf $HOME/Music
+          rm -rf $HOME/Musics
+          rm -rf $HOME/Picture
+          rm -rf $HOME/Pictures
+          rm -rf $HOME/Videos
+          echo $PASSWC | sudo -S mount -t cifs //SUBDOMAIN/$username $HOME/$username -o username=$username,password=$PASSWC,workgroup=SUBDOMAIN,iocharset=utf8,uid=$userid,gid=users,vers=3.1.1,nodfs --verbose
+	      mounted=$(df -h | grep //SUBDOMAIN/$username | awk -F' ' '{ if (NR==1) print $1}')
+	      if [[ "$mounted" = "//SUBDOMAIN/$username" ]];then 
+	        yad --title="info" --center --image "dialog-question" --text="Mounted successfully."
+
+			if [[ "$?" == 0 ]];then
+			  dolphin --select $HOME/$username/			 
+			else
+			 exit; 
+			fi
+	      else 
+	        yad --title="info" --image "dialog-question" --center --text="Mounted fail."
+			if [[ "$?" == 0 ]];then 
+			  main 
+			else
+			  exit; 
+			fi
+	      fi
+        else
+          continue
+        fi
+      done
+    else
+      yad --title="info" --image "dialog-question" --center --text="Incollect password."
+	  if [[ "$?" == 0 ]];then
+	    main 
+	  else 
+	    exit ;
+      fi
+    fi 
+  else 
+    yad --title="info" --image "dialog-question" --center --text="Password not match."
+	if [[ "$?" == 0 ]];then 
+      main
+	else
+	  exit; 
+	fi 
+  fi
+fi
+else
+  exit;
+fi
+
+}
+main
+fi
+done 

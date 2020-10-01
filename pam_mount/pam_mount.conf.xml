@@ -1,0 +1,15 @@
+ <!-- Example using CIFS -->
+<pam_mount>
+<debug enable="0" />
+<mkmountpoint enable="1" />
+
+<volume
+      fstype="cifs"
+      server="DOMAIN"
+      path="%(USER)"
+      mountpoint="~/%(USER)"
+      uid="1000-29999"
+      options="workgroup=SDM,iocharset=utf8,vers=3.1.1,cruid=%(USERUID),nodfs"
+/>
+
+</pam_mount>

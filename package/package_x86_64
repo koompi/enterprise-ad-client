@@ -1,0 +1,9 @@
+samba 
+pam-krb5 
+ntp
+gnome-terminal
+yad
+appmenu-gtk-module
+net-tools
+inetutils
+pam_mount
