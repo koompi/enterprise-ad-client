@@ -80,19 +80,19 @@ function sethostname(){
 
 ##....................banner....................
 banner(){
-echo
-BANNER_NAME=$1
-echo -e "${YELLOW}[+] ${BANNER_NAME} "
-echo -e "---------------------------------------------------${NC}"
+    echo
+    BANNER_NAME=$1
+    echo -e "${YELLOW}[+] ${BANNER_NAME} "
+    echo -e "---------------------------------------------------${NC}"
 }
 
 ##....................check root user.................
 check_root(){
-if [[ $(id -u) != 0 ]];
-then 
-    echo "This script run as root"
-    exit;
-fi 
+    if [[ $(id -u) != 0 ]];
+    then 
+        echo "This script run as root"
+        exit;
+    fi 
 }
 
 ##..........................install package base.......................
@@ -149,8 +149,8 @@ banner "Configure pam_mount"
     cp $(pwd)/pam_mount/* /etc/security/
     echo -e "${GREEN}[ OK ]${NC} Copy configure"
 
-    grep -rli REALM /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+DOMAIN+${REALM,,}+g @
-    grep -rli DOMAIN /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+SDM+${DOMAIN}+g @
+    grep -rli REALM /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+REALM+${REALM,,}+g @
+    grep -rli DOMAIN /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+DOMAIN+${DOMAIN}+g @
     echo -e "${GREEN}[ OK ]${NC} Configure pam_mount"
 }
 ##..................mysmb service..................
