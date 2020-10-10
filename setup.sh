@@ -120,8 +120,8 @@ banner "Configure krb5"
     # grep -rli domains /etc/krb5.conf | xargs -i@ sed -i s/domains/$newdomains/g @
     # grep -rli subdomain /etc/krb5.conf | xargs -i@ sed -i s/subdomain/$newsubdomains/g @
     grep -rli REALM /etc/krb5.conf | xargs -i@ sed -i s/REALM/$REALM/g @
-    grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$REALM/g @
-    grep -rli SRVREALM /etc/krb5.conf | xargs -i@ sed -i s/SRVREALM/$server_hostname.$REALM/g @
+    grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
+    grep -rli SRVREALM /etc/krb5.conf | xargs -i@ sed -i s/SRVREALM/"${server_hostname^^}.$REALM"/g @
     echo -e "${GREEN}[ OK ]${NC} Configuring krb5..."
 
 }
@@ -217,7 +217,7 @@ joindomain(){
 banner "Join Domain"
 
     # domain=$(echo $VAL1 | tr '[:lower:]' '[:upper:]')
-    echo "$samba_password" | kinit administrator@$REALM
+    echo "$samba_password" | kinit administrator@${REALM,,}
     echo "$samba_password" | sudo net join -U Administrator@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
