@@ -137,7 +137,7 @@ banner "Configure samba"
     grep -rli DOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
     grep -rli REALM /etc/samba/smb.conf | xargs -i@ sed -i s/REALM/$REALM/g @
     grep -rli SREALM /etc/samba/smb.conf | xargs -i@ sed -i s/SREALM/${REALM,,}/g @
-    grep -rli HOSTNAME /etc/samba/smb.conf | xargs -i@ sed -i s/HOSTNAME/$(HOSTNAME)/g @
+    grep -rli HOSTNAME /etc/samba/smb.conf | xargs -i@ sed -i s/HOSTNAME/$HOSTNAME/g @
     echo -e "${GREEN}[ OK ]${NC} Configuring samba rename"
 
 }
@@ -217,7 +217,7 @@ joindomain(){
 banner "Join Domain"
 
     # domain=$(echo $VAL1 | tr '[:lower:]' '[:upper:]')
-    echo "$samba_password" | kinit administrator@${REALM,,}
+    echo "$samba_password" | kinit administrator@${REALM}
     echo "$samba_password" | sudo net join -U Administrator@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
