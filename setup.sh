@@ -8,6 +8,15 @@ YELLOW='\033[1;33m'
 BLUE='\033[1;32m'
 NC='\033[0m'
 
+NOW=$(date +"%m-%d-%Y-%T")
+
+mkdir -p /klab/
+mkdir -p /klab/samba
+mkdir -p /klab/samba/log
+LOG="/klab/samba/log/clientlog-$NOW"
+
+rm -rf $LOG
+
 ##.................read input..................
 readinput(){
 # read -p "Domain: " VAL1
@@ -71,22 +80,7 @@ readinput(){
 # NEWSUBDOMAIN=$(echo "$newsubdomains" | tr '[:lower:]' '[:upper:]')
 }
 
-function sethostname(){
-    sudo hostnamectl set-hostname $hostname
-    sudo hostname $hostname
-    HOSTNAME=$hostname
-}
 
-
-##....................banner....................
-banner(){
-    echo
-    BANNER_NAME=$1
-    echo -e "${YELLOW}[+] ${BANNER_NAME} "
-    echo -e "---------------------------------------------------${NC}"
-}
-
-##....................check root user.................
 check_root(){
     if [[ $(id -u) != 0 ]];
     then 
@@ -95,25 +89,44 @@ check_root(){
     fi 
 }
 
+
+sethostname(){
+    banner 5 "Setting Hostname"
+    sudo hostnamectl set-hostname $hostname
+    sudo hostname $hostname
+    HOSTNAME=$hostname
+}
+
+##....................banner....................
+banner(){
+    # echo
+    # BANNER_NAME=$1
+    # echo -e "${YELLOW}[+] ${BANNER_NAME} "
+    # echo -e "---------------------------------------------------${NC}"
+    echo -e "XXX\n$1\n$2\nXXX"
+}
+
+##....................check root user.................
+
 ##..........................install package base.......................
 install_package_base(){
-banner "Install package."
+banner 10 "Installing necessary packages."
 
     for P in $(cat $(pwd)/package/package_x86_64)
     do
         if [[ -n "$(pacman -Q $P)" ]];
         then 
-            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed."
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed." >> $LOG
         else 
             sudo pacman -S $P --noconfirm
-            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed successful."
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed successful." >> $LOG
         fi
     done
 }
 
 ##...................krb5 rename.......................
 krb5(){
-banner "Configure krb5"
+banner 25 "Configuring Keberos Network Authenticator"
 
     cp $(pwd)/krb5/krb5.conf /etc/
     # grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$NEWDOMAIN/g @
@@ -122,66 +135,66 @@ banner "Configure krb5"
     grep -rli SRVREALM /etc/krb5.conf | xargs -i@ sed -i s/SRVREALM/"${server_hostname^^}.$REALM"/g @
     grep -rli REALM /etc/krb5.conf | xargs -i@ sed -i s/REALM/$REALM/g @
     grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
-    echo -e "${GREEN}[ OK ]${NC} Configuring krb5..."
+    echo -e "${GREEN}[ OK ]${NC} Configuring krb5..." >> $LOG
 
 }
 
 ##..................samba rename...................
 samba(){
-banner "Configure samba"
+banner 30 "Configuring Samba Active Directory Domain Controller Server"
 
     sudo cp $(pwd)/samba/* /etc/samba/
     sudo cp $(pwd)/samba/pam_winbind.conf /etc/security/
-    echo -e "${GREEN}[ OK ]${NC} copy config."
+    echo -e "${GREEN}[ OK ]${NC} copy config." >> $LOG
 
     grep -rli DOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
     grep -rli REALM /etc/samba/smb.conf | xargs -i@ sed -i s/REALM/$REALM/g @
     grep -rli SREALM /etc/samba/smb.conf | xargs -i@ sed -i s/SREALM/${REALM,,}/g @
     grep -rli HOSTNAME /etc/samba/smb.conf | xargs -i@ sed -i s/HOSTNAME/$HOSTNAME/g @
-    echo -e "${GREEN}[ OK ]${NC} Configuring samba rename"
+    echo -e "${GREEN}[ OK ]${NC} Configuring samba rename" >> $LOG
 
 }
 
 ##.....................pam mount.......................
 pam_mount(){
-banner "Configure pam_mount"
+banner 50 "Configuring Auto-mount Storage Drives Settings"
     
     cp $(pwd)/pam_mount/* /etc/security/
-    echo -e "${GREEN}[ OK ]${NC} Copy configure"
+    echo -e "${GREEN}[ OK ]${NC} Copy pam_mount configure" >> $LOG
 
     grep -rli REALM /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+REALM+${REALM,,}+g @
     grep -rli DOMAIN /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+DOMAIN+${DOMAIN}+g @
-    echo -e "${GREEN}[ OK ]${NC} Configure pam_mount"
+    echo -e "${GREEN}[ OK ]${NC} Configure pam_mount" >> $LOG
 }
 ##..................mysmb service..................
 mysmb(){
-banner "Configure samba service"
+banner 55 "Configuring Samba Helper Service"
     
     sudo cp $(pwd)/scripts/mysmb /usr/bin/mysmb
     sudo cp $(pwd)/service/mysmb.service /usr/lib/systemd/system/
     sudo chmod +x /usr/bin/mysmb
-    echo -e "${GREEN}[ OK ]${NC} Configuring necessary service"
+    echo -e "${GREEN}[ OK ]${NC} Configuring necessary service" >> $LOG
 }
 
 ##..................nsswitch..................
 nsswitch(){
-banner "Configure nsswitch"
+banner 65 "Configuring Name Service Swtich"
     
     sudo cp $(pwd)/nsswitch/nsswitch.conf /etc/nsswitch.conf
-    echo -e "${GREEN}[ OK ]${NC} Configuring nsswitch"
+    echo -e "${GREEN}[ OK ]${NC} Configuring nsswitch" >> $LOG
 }
 
 ##..................pam authentication...............
 pam(){
-banner "Configure pam"
+banner 70 "Configuring Pluggable Authentication Modules For Linux"
 
     sudo cp $(pwd)/pam.d/* /etc/pam.d/
-    echo -e "${GREEN}[ OK ]${NC} Configuring pam.d"
+    echo -e "${GREEN}[ OK ]${NC} Configuring pam.d" >> $LOG
 }
 
 ##...................resolv..................
 resolv(){
-banner "Configure resolv"
+banner 75 "Configuring Dynamic Name Service Resolver"
 
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
@@ -192,46 +205,46 @@ banner "Configure resolv"
     grep -rli NAMESERVER ${RESOLVCONF_FILE} | xargs -i@ sed -i s+NAMESERVER+${IPADDRESS}+g @
     # echo "name_servers=${IPADDRESS}" >> ${RESOLVCONF_FILE}
     # echo "search_domains=${REALM,,}" >> ${RESOLVCONF_FILE}
-    echo -e "${GREEN}[ OK ]${NC} Configuring resolvconf"
+    echo -e "${GREEN}[ OK ]${NC} Configuring resolvconf" >> $LOG
 
     #resolv
     echo "search ${REALM,,}" > ${RESOLV_FILE}
     echo "nameserver ${IPADDRESS}" >> ${RESOLV_FILE}
     echo "nameserver 8.8.8.8" >> ${RESOLV_FILE}
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
-    echo -e "${GREEN}[ OK ]${NC} Configuring resolv.conf"
+    echo -e "${GREEN}[ OK ]${NC} Configuring resolv.conf" >> $LOG
 
 }
 
 ##........................stop service...................
 stopservice(){
-banner "Service"
+banner 80 "Stopping Samba Related Service"
 
     sudo systemctl enable smb nmb winbind mysmb
     sudo systemctl stop smb nmb winbind mysmb
-    echo -e "${GREEN}[ OK ]${NC} Stoped service"
+    echo -e "${GREEN}[ OK ]${NC} Stoped service" >> $LOG
 }
 
 ##.....................join domain.......................
 joindomain(){
-banner "Join Domain"
+banner 90 "Joining $REALM Domain"
 
     # domain=$(echo $VAL1 | tr '[:lower:]' '[:upper:]')
     echo "$samba_password" | kinit administrator@${REALM}
     echo "$samba_password" | sudo net join -U Administrator@$REALM
-    echo -e "${GREEN}[ OK ]${NC} Join domain successful"
+    echo -e "${GREEN}[ OK ]${NC} Join domain successful" >> $LOG
 }
 
 ##.......................start service.....................
 startservice(){
-banner "start service"
+banner 100 "Starting Samba Related Service"
 
     sudo systemctl start smb nmb winbind
-    echo -e "${GREEN}[ OK ]${NC} Started service"
-    echo -e "${GREEN}[ OK ]${NC} Installation Completed"
+    echo -e "${GREEN}[ OK ]${NC} Started service" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Installation Completed" >> $LOG
 }
 
-
+{
 ##call function
 check_root
 readinput
@@ -247,3 +260,5 @@ resolv
 stopservice
 joindomain
 startservice
+} | whiptail --clear  --title "[ KOOMPI AD Server ]" --backtitle "Samba Active Directory Domain Controller" \
+--gauge "Please wait while installing" 6 60 0
