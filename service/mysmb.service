@@ -1,5 +1,6 @@
 [Unit]
 Description=script description %I
+Before=lightdm.service
 
 [Service]
 Type=simple
