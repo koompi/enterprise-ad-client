@@ -41,6 +41,29 @@ readinput(){
     server_hostname=$(TERM=ansi whiptail --clear --title "[ Server Hostname ]"  --inputbox \
     "\nPlease enter the hostname of the active directory server.\nExample:  adlab\n" 10 80 3>&1 1>&2 2>&3)
 
+    while true;
+    do
+        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+        "\nPlease enter Administrator password for joining domain\n" 3>&1 1>&2 2>&3)
+
+        samba_password_again=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+        "\nPlease enter Administrator password again" 10 80  3>&1 1>&2 2>&3)
+
+        if  [[ "$samba_password" != "$samba_password_again" ]];
+        then
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            "[ Administrator Password ]" --msgbox "Your password does match. Please retype it again" 10 80
+
+        elif [[ "${#samba_password}" < 8 ]];
+        then
+                TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+                "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement." 10 80
+        else
+                break
+        fi
+
+    done
+
 
 # newdomains=$VAL1
 # NEWDOMAIN=$(echo "$VAL1" | tr '[:lower:]' '[:upper:]')
@@ -165,8 +188,10 @@ banner "Configure resolv"
         
     #resolvconf
     cp resolv/resolvconf.conf ${RESOLVCONF_FILE}
-    echo "name_servers=${IPADDRESS}" >> ${RESOLVCONF_FILE}
-    echo "search_domains=${REALM,,}" >> ${RESOLVCONF_FILE}
+    grep -rli REALM ${RESOLVCONF_FILE} | xargs -i@ sed -i s+REALM+${REALM,,}+g @
+    grep -rli NAMESERVER ${RESOLVCONF_FILE} | xargs -i@ sed -i s+NAMESERVER+${IPADDRESS}+g @
+    # echo "name_servers=${IPADDRESS}" >> ${RESOLVCONF_FILE}
+    # echo "search_domains=${REALM,,}" >> ${RESOLVCONF_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configuring resolvconf"
 
     #resolv
@@ -192,8 +217,8 @@ joindomain(){
 banner "Join Domain"
 
     # domain=$(echo $VAL1 | tr '[:lower:]' '[:upper:]')
-    kinit administrator@$REALM
-    sudo net join -U Administrator@$REALM
+    echo "$samba_password" | kinit administrator@$REALM
+    echo "$samba_password" | sudo net join -U Administrator@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
 
