@@ -228,8 +228,7 @@ banner "start service"
 
     sudo systemctl start smb nmb winbind
     echo -e "${GREEN}[ OK ]${NC} Started service"
-    sudo systemctl status smb nmb winbind
-    sudo  -e "${GREEN}[ OK ]${NC} Status service"
+    echo -e "${GREEN}[ OK ]${NC} Installation Completed"
 }
 
 
