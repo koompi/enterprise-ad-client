@@ -18,11 +18,11 @@ readinput(){
     3>&1 1>&2 2>&3)
 
     REALM=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
-    "\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
+    "\nPlease enter a realm name of the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
     REALM=${REALM^^}
 
     DOMAIN=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
-    "\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
+    "\nPlease enter an domain of the active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
     DOMAIN=${DOMAIN^^}
 
     while true;
@@ -44,7 +44,7 @@ readinput(){
     while true;
     do
         samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
-        "\nPlease enter Administrator password for joining domain\n" 3>&1 1>&2 2>&3)
+        "\nPlease enter Administrator password for joining domain\n" 10 80 3>&1 1>&2 2>&3)
 
         samba_password_again=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
         "\nPlease enter Administrator password again" 10 80  3>&1 1>&2 2>&3)
