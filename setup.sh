@@ -10,14 +10,50 @@ NC='\033[0m'
 
 ##.................read input..................
 readinput(){
-read -p "Domain: " VAL1
-read -p "IP Address: " IPADDRESS
+# read -p "Domain: " VAL1
+# read -p "IP Address: " IPADDRESS
 
-newdomains=$VAL1
-NEWDOMAIN=$(echo "$VAL1" | tr '[:lower:]' '[:upper:]')
-newsubdomains=$(echo "$VAL1" | awk -F'.' '{print $1}')
-NEWSUBDOMAIN=$(echo "$newsubdomains" | tr '[:lower:]' '[:upper:]')
+    hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --inputbox \
+    "\nPlease enter a suitable new hostname for the client to join the active directory server.\nExample:  adclient-01\n" 10 80 \
+    3>&1 1>&2 2>&3)
+
+    REALM=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
+    "\nPlease enter a realm name for the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
+    REALM=${REALM^^}
+
+    DOMAIN=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
+    "\nPlease enter an domain for your new active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
+    DOMAIN=${DOMAIN^^}
+
+    while true;
+    do
+        IPADDRESS=$(TERM=ansi whiptail --clear --title "[ IP of Domain ]" --inputbox \
+        "\nPlease enter the IP of the active directory server\nExample:  172.16.1.1\n" 8 80 3>&1 1>&2 2>&3)
+        if [[ $IPADDRESS =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
+        then
+            break
+        else
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            "[ IP for Domain ]" --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" 10 80
+        fi
+    done
+
+    server_hostname=$(TERM=ansi whiptail --clear --title "[ Server Hostname ]"  --inputbox \
+    "\nPlease enter the hostname of the active directory server.\nExample:  adlab\n" 10 80 3>&1 1>&2 2>&3)
+
+
+# newdomains=$VAL1
+# NEWDOMAIN=$(echo "$VAL1" | tr '[:lower:]' '[:upper:]')
+# newsubdomains=$(echo "$VAL1" | awk -F'.' '{print $1}')
+# NEWSUBDOMAIN=$(echo "$newsubdomains" | tr '[:lower:]' '[:upper:]')
 }
+
+function sethostname(){
+    sudo hostnamectl set-hostname $hostname
+    sudo hostname $hostname
+    HOSTNAME=$hostname
+}
+
 
 ##....................banner....................
 banner(){
@@ -29,9 +65,10 @@ echo -e "---------------------------------------------------${NC}"
 
 ##....................check root user.................
 check_root(){
-if [[ $(id -u) != 0 ]];then 
-echo "This script run as root"
-exit;
+if [[ $(id -u) != 0 ]];
+then 
+    echo "This script run as root"
+    exit;
 fi 
 }
 
@@ -41,7 +78,8 @@ banner "Install package."
 
     for P in $(cat $(pwd)/package/package_x86_64)
     do
-        if [[ -n "$(pacman -Q $P)" ]];then 
+        if [[ -n "$(pacman -Q $P)" ]];
+        then 
             echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed."
         else 
             sudo pacman -S $P --noconfirm
@@ -55,9 +93,12 @@ krb5(){
 banner "Configure krb5"
 
     cp $(pwd)/krb5/krb5.conf /etc/
-    grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$NEWDOMAIN/g @
-    grep -rli domains /etc/krb5.conf | xargs -i@ sed -i s/domains/$newdomains/g @
-    grep -rli subdomain /etc/krb5.conf | xargs -i@ sed -i s/subdomain/$newsubdomains/g @
+    # grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$NEWDOMAIN/g @
+    # grep -rli domains /etc/krb5.conf | xargs -i@ sed -i s/domains/$newdomains/g @
+    # grep -rli subdomain /etc/krb5.conf | xargs -i@ sed -i s/subdomain/$newsubdomains/g @
+    grep -rli REALM /etc/krb5.conf | xargs -i@ sed -i s/REALM/$REALM/g @
+    grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$REALM/g @
+    grep -rli SRVREALM /etc/krb5.conf | xargs -i@ sed -i s/SRVREALM/$server_hostname.$REALM/g @
     echo -e "${GREEN}[ OK ]${NC} Configuring krb5..."
 
 }
@@ -70,10 +111,10 @@ banner "Configure samba"
     sudo cp $(pwd)/samba/pam_winbind.conf /etc/security/
     echo -e "${GREEN}[ OK ]${NC} copy config."
 
-    grep -rli SUBDOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/SUBDOMAIN/$NEWSUBDOMAIN/g @
-    grep -rli DOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/DOMAIN/$NEWDOMAIN/g @
-    grep -rli domains /etc/samba/smb.conf | xargs -i@ sed -i s/domains/$newdomains/g @
-    grep -rli HOSTNAME /etc/samba/smb.conf | xargs -i@ sed -i s/HOSTNAME/$(hostname)/g @
+    grep -rli DOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
+    grep -rli REALM /etc/samba/smb.conf | xargs -i@ sed -i s/REALM/$REALM/g @
+    grep -rli SREALM /etc/samba/smb.conf | xargs -i@ sed -i s/SREALM/${REALM,,}/g @
+    grep -rli HOSTNAME /etc/samba/smb.conf | xargs -i@ sed -i s/HOSTNAME/$(HOSTNAME)/g @
     echo -e "${GREEN}[ OK ]${NC} Configuring samba rename"
 
 }
@@ -85,8 +126,8 @@ banner "Configure pam_mount"
     cp $(pwd)/pam_mount/* /etc/security/
     echo -e "${GREEN}[ OK ]${NC} Copy configure"
 
-    grep -rli DOMAIN /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+DOMAIN+${VAL1}+g @
-    grep -rli SDM /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+SDM+${NEWSUBDOMAIN}+g @
+    grep -rli REALM /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+DOMAIN+${REALM,,}+g @
+    grep -rli DOMAIN /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+SDM+${DOMAIN}+g @
     echo -e "${GREEN}[ OK ]${NC} Configure pam_mount"
 }
 ##..................mysmb service..................
@@ -96,7 +137,7 @@ banner "Configure samba service"
     sudo cp $(pwd)/scripts/mysmb /usr/bin/mysmb
     sudo cp $(pwd)/service/mysmb.service /usr/lib/systemd/system/
     sudo chmod +x /usr/bin/mysmb
-    echo -e "${GREEN}[ OK ]${NC} Configuring client"
+    echo -e "${GREEN}[ OK ]${NC} Configuring necessary service"
 }
 
 ##..................nsswitch..................
@@ -124,17 +165,16 @@ banner "Configure resolv"
         
     #resolvconf
     cp resolv/resolvconf.conf ${RESOLVCONF_FILE}
-    echo "name_servers ${IPADDRESS}" >> ${RESOLVCONF_FILE}
-    echo "search_domains ${VAL1}" >> ${RESOLVCONF_FILE}
-    echo "name_servers 8.8.8.8" >> ${RESOLVCONF_FILE}
+    echo "name_servers=${IPADDRESS}" >> ${RESOLVCONF_FILE}
+    echo "search_domains=${REALM,,}" >> ${RESOLVCONF_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configuring resolvconf"
 
     #resolv
-    echo "search ${VAL1}" > ${RESOLV_FILE}
+    echo "search ${REALM,,}" > ${RESOLV_FILE}
     echo "nameserver ${IPADDRESS}" >> ${RESOLV_FILE}
     echo "nameserver 8.8.8.8" >> ${RESOLV_FILE}
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
-    echo -e "${GREEN}[ OK ]${NC} Configuring resolv"
+    echo -e "${GREEN}[ OK ]${NC} Configuring resolv.conf"
 
 }
 
@@ -151,9 +191,9 @@ banner "Service"
 joindomain(){
 banner "Join Domain"
 
-    domain=$(echo $VAL1 | tr '[:lower:]' '[:upper:]')
-    kinit administrator@$domain
-    sudo net join -U Administrator@$domain
+    # domain=$(echo $VAL1 | tr '[:lower:]' '[:upper:]')
+    kinit administrator@$REALM
+    sudo net join -U Administrator@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
 
@@ -171,6 +211,7 @@ banner "start service"
 ##call function
 check_root
 readinput
+sethostname
 install_package_base
 krb5
 samba
