@@ -84,14 +84,14 @@ readinput(){
 check_root(){
     if [[ $(id -u) != 0 ]];
     then 
-        echo "This script run as root"
+        echo -e "${RED}[ FAILED ]${NC} Root Permission Requirement Failed"
         exit;
     fi 
 }
 
 
 sethostname(){
-    banner 5 "Setting Hostname"
+
     sudo hostnamectl set-hostname $hostname
     sudo hostname $hostname
     HOSTNAME=$hostname
@@ -110,23 +110,22 @@ banner(){
 
 ##..........................install package base.......................
 install_package_base(){
-banner 10 "Installing necessary packages."
 
     for P in $(cat $(pwd)/package/package_x86_64)
     do
         if [[ -n "$(pacman -Q $P)" ]];
         then 
-            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed." >> $LOG
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed."
         else 
             sudo pacman -S $P --noconfirm
-            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed successful." >> $LOG
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed successful."
         fi
     done
+
 }
 
 ##...................krb5 rename.......................
 krb5(){
-banner 25 "Configuring Keberos Network Authenticator"
 
     cp $(pwd)/krb5/krb5.conf /etc/
     # grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$NEWDOMAIN/g @
@@ -141,60 +140,54 @@ banner 25 "Configuring Keberos Network Authenticator"
 
 ##..................samba rename...................
 samba(){
-banner 30 "Configuring Samba Active Directory Domain Controller Server"
 
     sudo cp $(pwd)/samba/* /etc/samba/
     sudo cp $(pwd)/samba/pam_winbind.conf /etc/security/
-    echo -e "${GREEN}[ OK ]${NC} copy config." >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} copy config."
 
     grep -rli DOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
     grep -rli REALM /etc/samba/smb.conf | xargs -i@ sed -i s/REALM/$REALM/g @
     grep -rli SREALM /etc/samba/smb.conf | xargs -i@ sed -i s/SREALM/${REALM,,}/g @
     grep -rli HOSTNAME /etc/samba/smb.conf | xargs -i@ sed -i s/HOSTNAME/$HOSTNAME/g @
-    echo -e "${GREEN}[ OK ]${NC} Configuring samba rename" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Configuring samba rename"
 
 }
 
 ##.....................pam mount.......................
 pam_mount(){
-banner 50 "Configuring Auto-mount Storage Drives Settings"
-    
+   
     cp $(pwd)/pam_mount/* /etc/security/
-    echo -e "${GREEN}[ OK ]${NC} Copy pam_mount configure" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Copy pam_mount configure" 
 
     grep -rli REALM /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+REALM+${REALM,,}+g @
     grep -rli DOMAIN /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+DOMAIN+${DOMAIN}+g @
-    echo -e "${GREEN}[ OK ]${NC} Configure pam_mount" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Configure pam_mount" >>
 }
 ##..................mysmb service..................
 mysmb(){
-banner 55 "Configuring Samba Helper Service"
     
     sudo cp $(pwd)/scripts/mysmb /usr/bin/mysmb
     sudo cp $(pwd)/service/mysmb.service /usr/lib/systemd/system/
     sudo chmod +x /usr/bin/mysmb
-    echo -e "${GREEN}[ OK ]${NC} Configuring necessary service" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Configuring necessary service" 
 }
 
 ##..................nsswitch..................
 nsswitch(){
-banner 65 "Configuring Name Service Swtich"
     
     sudo cp $(pwd)/nsswitch/nsswitch.conf /etc/nsswitch.conf
-    echo -e "${GREEN}[ OK ]${NC} Configuring nsswitch" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Configuring nsswitch" 
 }
 
 ##..................pam authentication...............
 pam(){
-banner 70 "Configuring Pluggable Authentication Modules For Linux"
 
     sudo cp $(pwd)/pam.d/* /etc/pam.d/
-    echo -e "${GREEN}[ OK ]${NC} Configuring pam.d" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Configuring pam.d"
 }
 
 ##...................resolv..................
 resolv(){
-banner 75 "Configuring Dynamic Name Service Resolver"
 
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
@@ -205,60 +198,80 @@ banner 75 "Configuring Dynamic Name Service Resolver"
     grep -rli NAMESERVER ${RESOLVCONF_FILE} | xargs -i@ sed -i s+NAMESERVER+${IPADDRESS}+g @
     # echo "name_servers=${IPADDRESS}" >> ${RESOLVCONF_FILE}
     # echo "search_domains=${REALM,,}" >> ${RESOLVCONF_FILE}
-    echo -e "${GREEN}[ OK ]${NC} Configuring resolvconf" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Configuring resolvconf"
 
     #resolv
     echo "search ${REALM,,}" > ${RESOLV_FILE}
     echo "nameserver ${IPADDRESS}" >> ${RESOLV_FILE}
     echo "nameserver 8.8.8.8" >> ${RESOLV_FILE}
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
-    echo -e "${GREEN}[ OK ]${NC} Configuring resolv.conf" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Configuring resolv.conf"
 
 }
 
 ##........................stop service...................
 stopservice(){
-banner 80 "Stopping Samba Related Service"
 
     sudo systemctl enable smb nmb winbind mysmb
     sudo systemctl stop smb nmb winbind mysmb
-    echo -e "${GREEN}[ OK ]${NC} Stoped service" >> $LOG
-}
+    echo -e "${GREEN}[ OK ]${NC} Stoped service"
 
 ##.....................join domain.......................
 joindomain(){
-banner 90 "Joining $REALM Domain"
 
     # domain=$(echo $VAL1 | tr '[:lower:]' '[:upper:]')
     echo "$samba_password" | kinit administrator@${REALM}
     echo "$samba_password" | sudo net join -U Administrator@$REALM
-    echo -e "${GREEN}[ OK ]${NC} Join domain successful" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
 
 ##.......................start service.....................
 startservice(){
-banner 100 "Starting Samba Related Service"
 
     sudo systemctl start smb nmb winbind
-    echo -e "${GREEN}[ OK ]${NC} Started service" >> $LOG
-    echo -e "${GREEN}[ OK ]${NC} Installation Completed" >> $LOG
+    echo -e "${GREEN}[ OK ]${NC} Started service" 
+    echo -e "${GREEN}[ OK ]${NC} Installation Completed" 
 }
 
-{
-##call function
 check_root
 readinput
-sethostname
-install_package_base
-krb5
-samba
-pam_mount
-mysmb
-nsswitch
-pam
-resolv
-stopservice
-joindomain
-startservice
-} | whiptail --clear  --title "[ KOOMPI AD Server ]" --backtitle "Samba Active Directory Domain Controller" \
---gauge "Please wait while installing" 6 60 0
+
+{
+
+    banner "5" "Setting Hostname"
+    sethostname
+
+    banner "10" "Installing necessary packages."
+    install_package_base
+
+    banner "25" "Configuring Keberos Network Authenticator"
+    krb5
+
+    banner "30" "Configuring Samba Active Directory Domain Controller Server"
+    samba
+
+    banner "50" "Configuring Auto-mount Storage Drives Settings"
+    pam_mount
+
+    banner "55" "Configuring Samba Helper Service"
+    mysmb
+
+    banner "65" "Configuring Name Service Swtich"
+    nsswitch
+
+    banner "70" "Configuring Pluggable Authentication Modules For Linux"
+    pam
+
+    banner "75" "Configuring Dynamic Name Service Resolver"
+    resolv
+
+    banner "80" "Stopping Samba Related Service"
+    stopservice
+
+    banner "90" "Joining $REALM Domain"
+    joindomain
+
+    banner "100" "Starting Samba Related Service"
+    startservice
+
+} | whiptail --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
