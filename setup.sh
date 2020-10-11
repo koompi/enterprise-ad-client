@@ -28,7 +28,7 @@ readinput(){
 
     hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
     --nocancel --ok-button Submit --inputbox \
-    "\nPlease enter a suitable new hostname for the client to join the active directory server.\nExample:  adclient-01\n" 10 80 \
+    "\nPlease enter a suitable new hostname for your client to join the active directory server.\n\nExample:  adclient-01\n" 10 100 \
     3>&1 1>&2 2>&3)
 
     REALM=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
@@ -129,15 +129,21 @@ banner(){
 ##..........................install package base.......................
 install_package_base(){
 
-    for P in $(cat $(pwd)/package/package_x86_64)
+    progress=10
+
+    for PKG in $(cat $(pwd)/package/package_x86_64)
     do
-        if [[ -n "$(pacman -Qs $P)" ]];
+        progress=$(echo $(( $progress+2 )))
+        banner "$progress" "Installing package $PKG..."
+
+        if [[ -n "$(pacman -Qs $PKG)" ]];
         then 
-            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed."
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC Installed." >> $LOG
         else 
-            sudo pacman -S $P --noconfirm 2>/dev/null
-            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed successful."
+            sudo pacman -S $PKG --noconfirm 2>/dev/null >> $LOG
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC Installed successful." >> $LOG
         fi
+        banner "$progress" "Installing package $PKG...Completed"
     done
 
 }
@@ -261,39 +267,42 @@ readinput
 {
 
     banner "5" "Setting Hostname"
-    sethostname >> $LOG
+    sethostname >> $LOG || echo -e "${RED}[ FAILED ]${NC} Setting Hostname Failed. Please Check log in $LOG" 
 
     banner "10" "Installing necessary packages."
-    install_package_base >> $LOG
+    install_package_base || echo -e "${RED}[ FAILED ]${NC} Installing Packages Failed. Please Check log in $LOG" 
 
     banner "25" "Configuring Keberos Network Authenticator"
-    krb5 >> $LOG
+    krb5 >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Keberos Failed. Please Check log in $LOG" 
 
     banner "30" "Configuring Samba Active Directory Domain Controller Server"
-    samba >> $LOG
+    samba >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Samba Failed. Please Check log in $LOG" 
 
     banner "50" "Configuring Auto-mount Storage Drives Settings"
-    pam_mount >> $LOG
+    pam_mount >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring PAM Mount Failed. Please Check log in $LOG" 
 
     banner "55" "Configuring Samba Helper Service"
-    mysmb >> $LOG
+    mysmb >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Samba Helper Failed. Please Check log in $LOG" 
 
     banner "65" "Configuring Name Service Swtich"
-    nsswitch >> $LOG
+    nsswitch >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Name Service Switch Failed. Please Check log in $LOG" 
 
     banner "70" "Configuring Pluggable Authentication Modules For Linux"
-    pam >> $LOG
+    pam >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Pluggable Authentication Modules For Linux Failed. \
+    Please Check log in $LOG" 
 
     banner "75" "Configuring Dynamic Name Service Resolver"
-    resolv >> $LOG
+    resolv >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring DNS Failed. Please Check log in $LOG" 
 
     banner "80" "Stopping Samba Related Service"
-    stopservice &>> $LOG
+    stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG" 
 
     banner "90" "Joining $REALM Domain"
-    joindomain >> $LOG
+    joindomain >> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
 
     banner "100" "Starting Samba Related Service"
-    startservice &>> $LOG
+    startservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Starting Related Samba Service Failed. Please Check log in $LOG"
 
 } | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
+
+clear
