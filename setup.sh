@@ -8,35 +8,55 @@ YELLOW='\033[1;33m'
 BLUE='\033[1;32m'
 NC='\033[0m'
 
-NOW=$(date +"%m-%d-%Y-%T")
 
-mkdir -p /klab/
-mkdir -p /klab/samba
-mkdir -p /klab/samba/log
-LOG="/klab/samba/log/clientlog-$NOW"
 
-rm -rf $LOG
+createlog(){
+
+    NOW=$(date +"%m-%d-%Y-%T")
+    mkdir -p /klab/
+    mkdir -p /klab/samba
+    mkdir -p /klab/samba/log
+    LOG="/klab/samba/log/clientlog-$NOW"
+
+    rm -rf $LOG
+}
 
 ##.................read input..................
 readinput(){
 # read -p "Domain: " VAL1
 # read -p "IP Address: " IPADDRESS
 
-    hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --inputbox \
+    hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit --inputbox \
     "\nPlease enter a suitable new hostname for the client to join the active directory server.\nExample:  adclient-01\n" 10 80 \
     3>&1 1>&2 2>&3)
 
-    REALM=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
-    "\nPlease enter a realm name of the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
-    REALM=${REALM^^}
+    REALM=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
+    --title "[ Realm Selection ]" --nocancel --ok-button Submit  --inputbox "                                       
+Please enter the FULL REALM NAME of the active directory server. Example:
 
-    DOMAIN=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
-    "\nPlease enter an domain of the active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
+        Server Name     =   adlab
+        Domain Name     =   koompilab
+        Realm Name      =   koompilab.org
+
+----------------------------------------------------------------------------
+        Full Realm Name =   adlab.koompilab.org" 15 80 3>&1 1>&2 2>&3) 
+    
+    server_hostname=$(echo $REALM |awk -F'.' '{printf $1}')
+    secondlvl_domain=$(echo $REALM |awk -F'.' '{printf $NF}')
+
+    DOMAIN=${REALM//"$server_hostname."}
+    DOMAIN=${DOMAIN//".$secondlvl_domain"}
+    REALM="$DOMAIN.$secondlvl_domain"
+
+    REALM=${REALM^^}
     DOMAIN=${DOMAIN^^}
+
 
     while true;
     do
-        IPADDRESS=$(TERM=ansi whiptail --clear --title "[ IP of Domain ]" --inputbox \
+        IPADDRESS=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
+        --title "[ IP of Domain ]" --nocancel --ok-button Submit --inputbox \
         "\nPlease enter the IP of the active directory server\nExample:  172.16.1.1\n" 8 80 3>&1 1>&2 2>&3)
         if [[ $IPADDRESS =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
         then
@@ -47,16 +67,14 @@ readinput(){
         fi
     done
 
-    server_hostname=$(TERM=ansi whiptail --clear --title "[ Server Hostname ]"  --inputbox \
-    "\nPlease enter the hostname of the active directory server.\nExample:  adlab\n" 10 80 3>&1 1>&2 2>&3)
 
     while true;
     do
-        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --nocancel --ok-button Submit --passwordbox \
         "\nPlease enter Administrator password for joining domain\n" 10 80 3>&1 1>&2 2>&3)
 
-        samba_password_again=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
-        "\nPlease enter Administrator password again" 10 80  3>&1 1>&2 2>&3)
+        samba_password_again=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --nocancel --ok-button Submit \
+        --passwordbox "\nPlease enter Administrator password again" 10 80  3>&1 1>&2 2>&3)
 
         if  [[ "$samba_password" != "$samba_password_again" ]];
         then
@@ -93,7 +111,7 @@ check_root(){
 sethostname(){
 
     sudo hostnamectl set-hostname $hostname
-    sudo hostname $hostname
+    # sudo hostname $hostname
     HOSTNAME=$hostname
 }
 
@@ -113,11 +131,11 @@ install_package_base(){
 
     for P in $(cat $(pwd)/package/package_x86_64)
     do
-        if [[ -n "$(pacman -Q $P)" ]];
+        if [[ -n "$(pacman -Qs $P)" ]];
         then 
             echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed."
         else 
-            sudo pacman -S $P --noconfirm
+            sudo pacman -S $P --noconfirm 2>/dev/null
             echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed successful."
         fi
     done
@@ -161,7 +179,8 @@ pam_mount(){
 
     grep -rli REALM /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+REALM+${REALM,,}+g @
     grep -rli DOMAIN /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+DOMAIN+${DOMAIN}+g @
-    echo -e "${GREEN}[ OK ]${NC} Configure pam_mount" >>
+    echo -e "${GREEN}[ OK ]${NC} Configure pam_mount"
+
 }
 ##..................mysmb service..................
 mysmb(){
@@ -216,6 +235,8 @@ stopservice(){
     sudo systemctl stop smb nmb winbind mysmb
     echo -e "${GREEN}[ OK ]${NC} Stoped service"
 
+}
+
 ##.....................join domain.......................
 joindomain(){
 
@@ -234,44 +255,45 @@ startservice(){
 }
 
 check_root
+createlog
 readinput
 
 {
 
     banner "5" "Setting Hostname"
-    sethostname
+    sethostname >> $LOG
 
     banner "10" "Installing necessary packages."
-    install_package_base
+    install_package_base >> $LOG
 
     banner "25" "Configuring Keberos Network Authenticator"
-    krb5
+    krb5 >> $LOG
 
     banner "30" "Configuring Samba Active Directory Domain Controller Server"
-    samba
+    samba >> $LOG
 
     banner "50" "Configuring Auto-mount Storage Drives Settings"
-    pam_mount
+    pam_mount >> $LOG
 
     banner "55" "Configuring Samba Helper Service"
-    mysmb
+    mysmb >> $LOG
 
     banner "65" "Configuring Name Service Swtich"
-    nsswitch
+    nsswitch >> $LOG
 
     banner "70" "Configuring Pluggable Authentication Modules For Linux"
-    pam
+    pam >> $LOG
 
     banner "75" "Configuring Dynamic Name Service Resolver"
-    resolv
+    resolv >> $LOG
 
     banner "80" "Stopping Samba Related Service"
-    stopservice
+    stopservice &>> $LOG
 
     banner "90" "Joining $REALM Domain"
-    joindomain
+    joindomain >> $LOG
 
     banner "100" "Starting Samba Related Service"
-    startservice
+    startservice &>> $LOG
 
-} | whiptail --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
+} | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
