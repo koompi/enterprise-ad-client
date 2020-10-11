@@ -8,26 +8,55 @@ YELLOW='\033[1;33m'
 BLUE='\033[1;32m'
 NC='\033[0m'
 
+
+
+createlog(){
+
+    NOW=$(date +"%m-%d-%Y-%T")
+    mkdir -p /klab/
+    mkdir -p /klab/samba
+    mkdir -p /klab/samba/log
+    LOG="/klab/samba/log/clientlog-$NOW"
+
+    rm -rf $LOG
+}
+
 ##.................read input..................
 readinput(){
 # read -p "Domain: " VAL1
 # read -p "IP Address: " IPADDRESS
 
-    hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --inputbox \
-    "\nPlease enter a suitable new hostname for the client to join the active directory server.\nExample:  adclient-01\n" 10 80 \
+    hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit --inputbox \
+    "\nPlease enter a suitable new hostname for your client to join the active directory server.\n\nExample:  adclient-01\n" 10 100 \
     3>&1 1>&2 2>&3)
 
-    REALM=$(TERM=ansi whiptail --clear --title "[ Realm Selection ]"  --inputbox \
-    "\nPlease enter a realm name of the active directory server.\nExample:  KOOMPILAB.ORG\n" 10 80 3>&1 1>&2 2>&3)
-    REALM=${REALM^^}
+    REALM=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
+    --title "[ Realm Selection ]" --nocancel --ok-button Submit  --inputbox "                                       
+Please enter the FULL REALM NAME of the active directory server. Example:
 
-    DOMAIN=$(TERM=ansi whiptail --clear --title "[ Domain Selection ]" --inputbox \
-    "\nPlease enter an domain of the active directory server\nExample:  KOOMPILAB\n" 10 80 3>&1 1>&2 2>&3)
+        Server Name     =   adlab
+        Domain Name     =   koompilab
+        Realm Name      =   koompilab.org
+
+----------------------------------------------------------------------------
+        Full Realm Name =   adlab.koompilab.org" 15 80 3>&1 1>&2 2>&3) 
+    
+    server_hostname=$(echo $REALM |awk -F'.' '{printf $1}')
+    secondlvl_domain=$(echo $REALM |awk -F'.' '{printf $NF}')
+
+    DOMAIN=${REALM//"$server_hostname."}
+    DOMAIN=${DOMAIN//".$secondlvl_domain"}
+    REALM="$DOMAIN.$secondlvl_domain"
+
+    REALM=${REALM^^}
     DOMAIN=${DOMAIN^^}
+
 
     while true;
     do
-        IPADDRESS=$(TERM=ansi whiptail --clear --title "[ IP of Domain ]" --inputbox \
+        IPADDRESS=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
+        --title "[ IP of Domain ]" --nocancel --ok-button Submit --inputbox \
         "\nPlease enter the IP of the active directory server\nExample:  172.16.1.1\n" 8 80 3>&1 1>&2 2>&3)
         if [[ $IPADDRESS =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
         then
@@ -38,16 +67,14 @@ readinput(){
         fi
     done
 
-    server_hostname=$(TERM=ansi whiptail --clear --title "[ Server Hostname ]"  --inputbox \
-    "\nPlease enter the hostname of the active directory server.\nExample:  adlab\n" 10 80 3>&1 1>&2 2>&3)
 
     while true;
     do
-        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
+        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --nocancel --ok-button Submit --passwordbox \
         "\nPlease enter Administrator password for joining domain\n" 10 80 3>&1 1>&2 2>&3)
 
-        samba_password_again=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --passwordbox \
-        "\nPlease enter Administrator password again" 10 80  3>&1 1>&2 2>&3)
+        samba_password_again=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --nocancel --ok-button Submit \
+        --passwordbox "\nPlease enter Administrator password again" 10 80  3>&1 1>&2 2>&3)
 
         if  [[ "$samba_password" != "$samba_password_again" ]];
         then
@@ -71,49 +98,58 @@ readinput(){
 # NEWSUBDOMAIN=$(echo "$newsubdomains" | tr '[:lower:]' '[:upper:]')
 }
 
-function sethostname(){
-    sudo hostnamectl set-hostname $hostname
-    sudo hostname $hostname
-    HOSTNAME=$hostname
-}
 
-
-##....................banner....................
-banner(){
-    echo
-    BANNER_NAME=$1
-    echo -e "${YELLOW}[+] ${BANNER_NAME} "
-    echo -e "---------------------------------------------------${NC}"
-}
-
-##....................check root user.................
 check_root(){
     if [[ $(id -u) != 0 ]];
     then 
-        echo "This script run as root"
+        echo -e "${RED}[ FAILED ]${NC} Root Permission Requirement Failed"
         exit;
     fi 
 }
 
+
+sethostname(){
+
+    sudo hostnamectl set-hostname $hostname
+    # sudo hostname $hostname
+    HOSTNAME=$hostname
+}
+
+##....................banner....................
+banner(){
+    # echo
+    # BANNER_NAME=$1
+    # echo -e "${YELLOW}[+] ${BANNER_NAME} "
+    # echo -e "---------------------------------------------------${NC}"
+    echo -e "XXX\n$1\n$2\nXXX"
+}
+
+##....................check root user.................
+
 ##..........................install package base.......................
 install_package_base(){
-banner "Install package."
 
-    for P in $(cat $(pwd)/package/package_x86_64)
+    progress=10
+
+    for PKG in $(cat $(pwd)/package/package_x86_64)
     do
-        if [[ -n "$(pacman -Q $P)" ]];
+        progress=$(echo $(( $progress+2 )))
+        banner "$progress" "Installing package $PKG..."
+
+        if [[ -n "$(pacman -Qs $PKG)" ]];
         then 
-            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed."
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC Installed." >> $LOG
         else 
-            sudo pacman -S $P --noconfirm
-            echo -e "${GREEN}[ OK ]${NC} Package: $RED $P $NC Installed successful."
+            sudo pacman -S $PKG --noconfirm 2>/dev/null >> $LOG
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC Installed successful." >> $LOG
         fi
+        banner "$progress" "Installing package $PKG...Completed"
     done
+
 }
 
 ##...................krb5 rename.......................
 krb5(){
-banner "Configure krb5"
 
     cp $(pwd)/krb5/krb5.conf /etc/
     # grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$NEWDOMAIN/g @
@@ -122,13 +158,12 @@ banner "Configure krb5"
     grep -rli SRVREALM /etc/krb5.conf | xargs -i@ sed -i s/SRVREALM/"${server_hostname^^}.$REALM"/g @
     grep -rli REALM /etc/krb5.conf | xargs -i@ sed -i s/REALM/$REALM/g @
     grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
-    echo -e "${GREEN}[ OK ]${NC} Configuring krb5..."
+    echo -e "${GREEN}[ OK ]${NC} Configuring krb5..." >> $LOG
 
 }
 
 ##..................samba rename...................
 samba(){
-banner "Configure samba"
 
     sudo cp $(pwd)/samba/* /etc/samba/
     sudo cp $(pwd)/samba/pam_winbind.conf /etc/security/
@@ -144,36 +179,33 @@ banner "Configure samba"
 
 ##.....................pam mount.......................
 pam_mount(){
-banner "Configure pam_mount"
-    
+   
     cp $(pwd)/pam_mount/* /etc/security/
-    echo -e "${GREEN}[ OK ]${NC} Copy configure"
+    echo -e "${GREEN}[ OK ]${NC} Copy pam_mount configure" 
 
     grep -rli REALM /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+REALM+${REALM,,}+g @
     grep -rli DOMAIN /etc/security/pam_mount.conf.xml | xargs -i@ sed -i s+DOMAIN+${DOMAIN}+g @
     echo -e "${GREEN}[ OK ]${NC} Configure pam_mount"
+
 }
 ##..................mysmb service..................
 mysmb(){
-banner "Configure samba service"
     
     sudo cp $(pwd)/scripts/mysmb /usr/bin/mysmb
     sudo cp $(pwd)/service/mysmb.service /usr/lib/systemd/system/
     sudo chmod +x /usr/bin/mysmb
-    echo -e "${GREEN}[ OK ]${NC} Configuring necessary service"
+    echo -e "${GREEN}[ OK ]${NC} Configuring necessary service" 
 }
 
 ##..................nsswitch..................
 nsswitch(){
-banner "Configure nsswitch"
     
     sudo cp $(pwd)/nsswitch/nsswitch.conf /etc/nsswitch.conf
-    echo -e "${GREEN}[ OK ]${NC} Configuring nsswitch"
+    echo -e "${GREEN}[ OK ]${NC} Configuring nsswitch" 
 }
 
 ##..................pam authentication...............
 pam(){
-banner "Configure pam"
 
     sudo cp $(pwd)/pam.d/* /etc/pam.d/
     echo -e "${GREEN}[ OK ]${NC} Configuring pam.d"
@@ -181,7 +213,6 @@ banner "Configure pam"
 
 ##...................resolv..................
 resolv(){
-banner "Configure resolv"
 
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
@@ -205,16 +236,15 @@ banner "Configure resolv"
 
 ##........................stop service...................
 stopservice(){
-banner "Service"
 
     sudo systemctl enable smb nmb winbind mysmb
     sudo systemctl stop smb nmb winbind mysmb
     echo -e "${GREEN}[ OK ]${NC} Stoped service"
+
 }
 
 ##.....................join domain.......................
 joindomain(){
-banner "Join Domain"
 
     # domain=$(echo $VAL1 | tr '[:lower:]' '[:upper:]')
     echo "$samba_password" | kinit administrator@${REALM}
@@ -224,26 +254,55 @@ banner "Join Domain"
 
 ##.......................start service.....................
 startservice(){
-banner "start service"
 
     sudo systemctl start smb nmb winbind
-    echo -e "${GREEN}[ OK ]${NC} Started service"
-    echo -e "${GREEN}[ OK ]${NC} Installation Completed"
+    echo -e "${GREEN}[ OK ]${NC} Started service" 
+    echo -e "${GREEN}[ OK ]${NC} Installation Completed" 
 }
 
-
-##call function
 check_root
+createlog
 readinput
-sethostname
-install_package_base
-krb5
-samba
-pam_mount
-mysmb
-nsswitch
-pam
-resolv
-stopservice
-joindomain
-startservice
+
+{
+
+    banner "5" "Setting Hostname"
+    sethostname >> $LOG || echo -e "${RED}[ FAILED ]${NC} Setting Hostname Failed. Please Check log in $LOG" 
+
+    banner "10" "Installing necessary packages."
+    install_package_base || echo -e "${RED}[ FAILED ]${NC} Installing Packages Failed. Please Check log in $LOG" 
+
+    banner "25" "Configuring Keberos Network Authenticator"
+    krb5 >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Keberos Failed. Please Check log in $LOG" 
+
+    banner "30" "Configuring Samba Active Directory Domain Controller Server"
+    samba >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Samba Failed. Please Check log in $LOG" 
+
+    banner "50" "Configuring Auto-mount Storage Drives Settings"
+    pam_mount >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring PAM Mount Failed. Please Check log in $LOG" 
+
+    banner "55" "Configuring Samba Helper Service"
+    mysmb >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Samba Helper Failed. Please Check log in $LOG" 
+
+    banner "65" "Configuring Name Service Swtich"
+    nsswitch >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Name Service Switch Failed. Please Check log in $LOG" 
+
+    banner "70" "Configuring Pluggable Authentication Modules For Linux"
+    pam >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Pluggable Authentication Modules For Linux Failed. \
+    Please Check log in $LOG" 
+
+    banner "75" "Configuring Dynamic Name Service Resolver"
+    resolv >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring DNS Failed. Please Check log in $LOG" 
+
+    banner "80" "Stopping Samba Related Service"
+    stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG" 
+
+    banner "90" "Joining $REALM Domain"
+    joindomain >> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
+
+    banner "100" "Starting Samba Related Service"
+    startservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Starting Related Samba Service Failed. Please Check log in $LOG"
+
+} | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
+
+clear
