@@ -23,8 +23,6 @@ createlog(){
 
 ##.................read input..................
 readinput(){
-# read -p "Domain: " VAL1
-# read -p "IP Address: " IPADDRESS
 
     hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
     --nocancel --ok-button Submit --inputbox \
@@ -47,6 +45,9 @@ Please enter the FULL REALM NAME of the active directory server. Example:
 
     DOMAIN=${REALM//"$server_hostname."}
     DOMAIN=${DOMAIN//".$secondlvl_domain"}
+
+    FULLREALM=$REALM
+
     REALM="$DOMAIN.$secondlvl_domain"
 
     REALM=${REALM^^}
@@ -91,11 +92,6 @@ Please enter the FULL REALM NAME of the active directory server. Example:
 
     done
 
-
-# newdomains=$VAL1
-# NEWDOMAIN=$(echo "$VAL1" | tr '[:lower:]' '[:upper:]')
-# newsubdomains=$(echo "$VAL1" | awk -F'.' '{print $1}')
-# NEWSUBDOMAIN=$(echo "$newsubdomains" | tr '[:lower:]' '[:upper:]')
 }
 
 
@@ -111,16 +107,13 @@ check_root(){
 sethostname(){
 
     sudo hostnamectl set-hostname $hostname
-    # sudo hostname $hostname
     HOSTNAME=$hostname
+
 }
 
 ##....................banner....................
 banner(){
-    # echo
-    # BANNER_NAME=$1
-    # echo -e "${YELLOW}[+] ${BANNER_NAME} "
-    # echo -e "---------------------------------------------------${NC}"
+
     echo -e "XXX\n$1\n$2\nXXX"
 }
 
@@ -129,6 +122,7 @@ banner(){
 ##..........................install package base.......................
 install_package_base(){
 
+    sudo pacman -Sy pacman-contrib --noconfirm
     progress=10
 
     for PKG in $(cat $(pwd)/package/package_x86_64)
@@ -140,10 +134,9 @@ install_package_base(){
         then 
             echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC Installed." >> $LOG
         else 
-            sudo pacman -S $PKG --noconfirm 2>/dev/null >> $LOG
+            sudo pacman -S $(pactree -alsu $PKG) --noconfirm 2>/dev/null >> $LOG
             echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC Installed successful." >> $LOG
         fi
-        banner "$progress" "Installing package $PKG...Completed"
     done
 
 }
@@ -152,9 +145,6 @@ install_package_base(){
 krb5(){
 
     cp $(pwd)/krb5/krb5.conf /etc/
-    # grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$NEWDOMAIN/g @
-    # grep -rli domains /etc/krb5.conf | xargs -i@ sed -i s/domains/$newdomains/g @
-    # grep -rli subdomain /etc/krb5.conf | xargs -i@ sed -i s/subdomain/$newsubdomains/g @
     grep -rli SRVREALM /etc/krb5.conf | xargs -i@ sed -i s/SRVREALM/"${server_hostname^^}.$REALM"/g @
     grep -rli REALM /etc/krb5.conf | xargs -i@ sed -i s/REALM/$REALM/g @
     grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
@@ -221,9 +211,7 @@ resolv(){
     cp resolv/resolvconf.conf ${RESOLVCONF_FILE}
     grep -rli REALM ${RESOLVCONF_FILE} | xargs -i@ sed -i s+REALM+${REALM,,}+g @
     grep -rli NAMESERVER ${RESOLVCONF_FILE} | xargs -i@ sed -i s+NAMESERVER+${IPADDRESS}+g @
-    # echo "name_servers=${IPADDRESS}" >> ${RESOLVCONF_FILE}
-    # echo "search_domains=${REALM,,}" >> ${RESOLVCONF_FILE}
-    echo -e "${GREEN}[ OK ]${NC} Configuring resolvconf"
+    echo -e "${GREEN}[ OK ]${NC} Configuring resolvconf.conf"
 
     #resolv
     echo "search ${REALM,,}" > ${RESOLV_FILE}
@@ -231,6 +219,22 @@ resolv(){
     echo "nameserver 8.8.8.8" >> ${RESOLV_FILE}
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configuring resolv.conf"
+
+    echo -e "[main]\ndns=none\nmain.systemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
+    resolvconf -u
+    echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
+
+    echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
+}
+
+ntp(){
+
+    NTPCONF=/etc/ntp.conf
+
+    cp ntp/ntp.conf $NTPCONF
+    grep -rli NTPSRV $NTPCONF | xargs -i@ sed -i s+NTPSRV+${FULLREALM,,}+g @
+
+    echo -e "${GREEN}[ OK ]${NC} Configure NTP successful. $NC"
 
 }
 
@@ -246,7 +250,6 @@ stopservice(){
 ##.....................join domain.......................
 joindomain(){
 
-    # domain=$(echo $VAL1 | tr '[:lower:]' '[:upper:]')
     echo "$samba_password" | kinit administrator@${REALM}
     echo "$samba_password" | sudo net join -U Administrator@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
@@ -257,7 +260,8 @@ startservice(){
 
     sudo systemctl start smb nmb winbind
     echo -e "${GREEN}[ OK ]${NC} Started service" 
-    echo -e "${GREEN}[ OK ]${NC} Installation Completed" 
+    echo -e "${GREEN}[ OK ]${NC} Installation Completed"
+
 }
 
 check_root
@@ -275,6 +279,9 @@ readinput
     banner "25" "Configuring Keberos Network Authenticator"
     krb5 >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Keberos Failed. Please Check log in $LOG" 
 
+    banner "27" "Configuring Network Time Server"
+    ntp >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Network Time Server. Please Check log in $LOG" 
+ 
     banner "30" "Configuring Samba Active Directory Domain Controller Server"
     samba >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Samba Failed. Please Check log in $LOG" 
 
@@ -298,7 +305,7 @@ readinput
     stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG" 
 
     banner "90" "Joining $REALM Domain"
-    joindomain >> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
+    joindomain &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
 
     banner "100" "Starting Samba Related Service"
     startservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Starting Related Samba Service Failed. Please Check log in $LOG"
