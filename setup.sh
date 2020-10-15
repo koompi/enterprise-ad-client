@@ -160,8 +160,8 @@ samba(){
     echo -e "${GREEN}[ OK ]${NC} copy config."
 
     grep -rli DOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
+    grep -rli SMALLREALM /etc/samba/smb.conf | xargs -i@ sed -i s/SMALLREALM/${REALM,,}/g @
     grep -rli REALM /etc/samba/smb.conf | xargs -i@ sed -i s/REALM/$REALM/g @
-    grep -rli SREALM /etc/samba/smb.conf | xargs -i@ sed -i s/SREALM/${REALM,,}/g @
     grep -rli HOSTNAME /etc/samba/smb.conf | xargs -i@ sed -i s/HOSTNAME/$HOSTNAME/g @
     echo -e "${GREEN}[ OK ]${NC} Configuring samba rename"
 
