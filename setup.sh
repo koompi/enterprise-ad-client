@@ -134,7 +134,7 @@ install_package_base(){
         then 
             echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC Installed." >> $LOG
         else 
-            sudo pacman -S $(pactree -alsu $PKG) --noconfirm 2>/dev/null >> $LOG
+            sudo pacman -S $(pactree -alsu $PKG) --needed --noconfirm 2>/dev/null >> $LOG
             echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC Installed successful." >> $LOG
         fi
     done
