@@ -1,8 +1,8 @@
-samba 
+samba
 pam-krb5 
 ntp
-gnome-terminal
-yad
+bind
+krb5
 appmenu-gtk-module
 net-tools
 inetutils
