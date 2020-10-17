@@ -12,6 +12,12 @@ NC='\033[0m'
 
 createlog(){
 
+    ## syncronize time
+
+    timedatectl set-timezone Asia/Phnom_Penh
+    timedatectl set-ntp 1
+    timedatectl
+
     NOW=$(date +"%m-%d-%Y-%T")
     mkdir -p /klab/
     mkdir -p /klab/samba
@@ -139,6 +145,10 @@ install_package_base(){
         fi
     done
 
+    cp service/smb.service /usr/lib/systemd/system/
+    cp service/nmb.service /usr/lib/systemd/system/
+    cp service/winbind.service /usr/lib/systemd/system/
+
 }
 
 ##...................krb5 rename.......................
@@ -206,7 +216,9 @@ resolv(){
 
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
-        
+
+    rm -rf $RESOLV_FILE
+
     #resolvconf
     cp resolv/resolvconf.conf ${RESOLVCONF_FILE}
     grep -rli REALM ${RESOLVCONF_FILE} | xargs -i@ sed -i s+REALM+${REALM,,}+g @
@@ -241,8 +253,8 @@ ntp(){
 ##........................stop service...................
 stopservice(){
 
-    sudo systemctl enable smb nmb winbind mysmb
-    sudo systemctl stop smb nmb winbind mysmb
+    sudo systemctl enable ntp smb nmb winbind mysmb 
+    sudo systemctl stop ntp smb nmb winbind mysmb
     echo -e "${GREEN}[ OK ]${NC} Stoped service"
 
 }
@@ -258,7 +270,7 @@ joindomain(){
 ##.......................start service.....................
 startservice(){
 
-    sudo systemctl start smb nmb winbind
+    sudo systemctl start ntp smb nmb winbind
     echo -e "${GREEN}[ OK ]${NC} Started service" 
     echo -e "${GREEN}[ OK ]${NC} Installation Completed"
 
