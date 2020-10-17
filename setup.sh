@@ -253,8 +253,8 @@ ntp(){
 ##........................stop service...................
 stopservice(){
 
-    sudo systemctl enable ntp smb nmb winbind mysmb 
-    sudo systemctl stop ntp smb nmb winbind mysmb
+    sudo systemctl enable ntpd smb nmb winbind mysmb 
+    sudo systemctl stop ntpd smb nmb winbind mysmb
     echo -e "${GREEN}[ OK ]${NC} Stoped service"
 
 }
@@ -270,7 +270,7 @@ joindomain(){
 ##.......................start service.....................
 startservice(){
 
-    sudo systemctl start ntp smb nmb winbind
+    sudo systemctl start ntpd smb nmb winbind
     echo -e "${GREEN}[ OK ]${NC} Started service" 
     echo -e "${GREEN}[ OK ]${NC} Installation Completed"
 
