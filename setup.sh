@@ -217,7 +217,10 @@ resolv(){
     RESOLVCONF_FILE=/etc/resolvconf.conf
     RESOLV_FILE=/etc/resolv.conf
 
+    echo -e "[main]\ndns=none\nsystemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
+    systemctl restart NetworkManager
     rm -rf $RESOLV_FILE
+    echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
 
     #resolvconf
     cp resolv/resolvconf.conf ${RESOLVCONF_FILE}
@@ -232,9 +235,7 @@ resolv(){
     echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
     echo -e "${GREEN}[ OK ]${NC} Configuring resolv.conf"
 
-    echo -e "[main]\ndns=none\nmain.systemd-resolved=false" > /etc/NetworkManager/conf.d/dns.conf
     resolvconf -u
-    echo -e "${GREEN}[ OK ]${NC} Restrict NetworkManager from touching resolv.conf"
 
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 }
