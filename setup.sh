@@ -157,7 +157,7 @@ install_package_base(){
         fi
     done
 
-    if [[ "$errorexit" == "true"]];
+    if [[ "$errorexit" == "true" ]];
     then
         exit
     else
