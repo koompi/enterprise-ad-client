@@ -128,7 +128,8 @@ banner(){
 ##..........................install package base.......................
 install_package_base(){
 
-    sudo pacman -Sy pacman-contrib --noconfirm
+    errorexit="false"
+    sudo pacman -Sy pacman-contrib --noconfirm 2>/dev/null >> $LOG
     progress=10
 
     for PKG in $(cat $(pwd)/package/package_x86_64)
@@ -145,10 +146,25 @@ install_package_base(){
         fi
     done
 
-    cp service/smb.service /usr/lib/systemd/system/
-    cp service/nmb.service /usr/lib/systemd/system/
-    cp service/winbind.service /usr/lib/systemd/system/
+    for PKG in $(cat $(pwd)/package/package_x86_64)
+    do
 
+        if [[ ! -n "$(pacman -Qs $PKG)" ]];
+        then 
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC failed to Install" >> $LOG
+            errorexit="true"
+            break
+        fi
+    done
+
+    if [[ "$errorexit" == "true"]];
+    then
+        exit
+    else
+        cp service/smb.service /usr/lib/systemd/system/
+        cp service/nmb.service /usr/lib/systemd/system/
+        cp service/winbind.service /usr/lib/systemd/system/
+    fi
 }
 
 ##...................krb5 rename.......................
