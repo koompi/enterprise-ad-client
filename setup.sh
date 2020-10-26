@@ -296,9 +296,9 @@ stopservice(){
 ##.....................join domain.......................
 joindomain(){
 
-    echo "$samba_password" | kinit ${admin,,}@${REALM}
+    echo "$samba_password" | kinit ${admin,,}@${REALM} 
     echo "$samba_password" | sudo net ads join -U $admin@$REALM
-    echo -e "${GREEN}[ OK ]${NC} Join domain successful"
+    echo -e "${GREEN}[ OK ]${NC} Join domain successful" &>> $LOG
 }
 
 ##.......................start service.....................
@@ -351,7 +351,8 @@ readinput
     stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG" 
 
     banner "90" "Joining $REALM Domain"
-    joindomain &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
+    joindomain 
+    # &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
 
     banner "100" "Starting Samba Related Service"
     startservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Starting Related Samba Service Failed. Please Check log in $LOG"
