@@ -299,7 +299,7 @@ joindomain(){
 ##.......................start service.....................
 startservice(){
 
-    sudo systemctl start ntpd smb nmb winbind
+    sudo systemctl start mysmb ntpd smb nmb winbind
     echo -e "${GREEN}[ OK ]${NC} Started service" 
     echo -e "${GREEN}[ OK ]${NC} Installation Completed"
 
