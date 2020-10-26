@@ -348,12 +348,15 @@ readinput
     resolv >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring DNS Failed. Please Check log in $LOG" 
 
     banner "80" "Stopping Samba Related Service"
-    stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG" 
+    stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG"
+
+    banner "90" "Joining $REALM Domain" 
 
 } | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
-{
-    banner "90" "Joining $REALM Domain"
+
     joindomain &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
+
+{
 
     banner "100" "Starting Samba Related Service"
     startservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Starting Related Samba Service Failed. Please Check log in $LOG"
