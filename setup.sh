@@ -64,17 +64,6 @@ Please enter the FULL REALM NAME of the active directory server. Example:
     REALM=${REALM^^}
     DOMAIN=${DOMAIN^^}
 
-    admin=$(TERM=ansi whiptail --clear --title "[ Administrator Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
-    --nocancel --ok-button Submit --inputbox \
-    "\nPlease enter A Suitable User for your client to join the active directory server.\n\nDefault:  Administrator" 10 100 \
-    3>&1 1>&2 2>&3)
-
-    if [[ -z "$admin" ]];
-    then
-        admin=Administrator
-    fi
-
-
     while true;
     do
         IPADDRESS=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
@@ -88,6 +77,16 @@ Please enter the FULL REALM NAME of the active directory server. Example:
             "[ IP for Domain ]" --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" 10 80
         fi
     done
+
+    admin=$(TERM=ansi whiptail --clear --title "[ Administrator Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit --inputbox \
+    "\nPlease enter A Suitable User for your client to join the active directory server.\n\nDefault:  Administrator" 10 100 \
+    3>&1 1>&2 2>&3)
+
+    if [[ -z "$admin" ]];
+    then
+        admin=Administrator
+    fi
 
 
     while true;
@@ -354,7 +353,8 @@ readinput
 
 } | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
 
-    joindomain &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
+    joindomain
+    # &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
 
 {
 
