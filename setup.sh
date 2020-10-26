@@ -54,6 +54,11 @@ Please enter the FULL REALM NAME of the active directory server. Example:
 
     FULLREALM=$REALM
 
+    if [[ "$DOMAIN" == *.* ]];
+    then
+        DOMAIN=$(echo $DOMAIN | awk -F',' '{printf $1}')
+    fi    
+
     REALM="$DOMAIN.$secondlvl_domain"
 
     REALM=${REALM^^}
@@ -61,14 +66,12 @@ Please enter the FULL REALM NAME of the active directory server. Example:
 
     admin=$(TERM=ansi whiptail --clear --title "[ Administrator Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
     --nocancel --ok-button Submit --inputbox \
-    "\nPlease enter a suitable user with permission for your client to join the active directory server.\n\nDefault:  Administrator" 10 100 \
+    "\nPlease enter A Suitable User for your client to join the active directory server.\n\nDefault:  Administrator" 10 100 \
     3>&1 1>&2 2>&3)
 
     if [[ -z "$admin" ]];
     then
-
         admin=Administrator
-
     fi
 
 
@@ -264,6 +267,8 @@ resolv(){
     echo -e "${GREEN}[ OK ]${NC} Configuring resolv.conf"
 
     resolvconf -u
+
+    echo "\n${REALM,,} ${IPADDRESS}" >> /etc/hosts
 
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 }
