@@ -268,7 +268,7 @@ resolv(){
 
     resolvconf -u
 
-    echo "\n${REALM,,} ${IPADDRESS}" >> /etc/hosts
+    echo -e "\n${IPADDRESS} ${REALM,,}\n" >> /etc/hosts
 
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 }
