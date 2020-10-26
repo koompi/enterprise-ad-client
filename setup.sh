@@ -295,7 +295,7 @@ stopservice(){
 ##.....................join domain.......................
 joindomain(){
 
-    echo "$samba_password" | kinit ${admin,,}@${REALM} 
+    echo "$samba_password" | kinit ${admin,,}@${REALM}
     echo "$samba_password" | sudo net ads join -U $admin@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
@@ -353,8 +353,7 @@ readinput
 
 } | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
 
-    joindomain
-    # &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
+    joindomain &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
 
 {
 
