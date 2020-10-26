@@ -59,6 +59,18 @@ Please enter the FULL REALM NAME of the active directory server. Example:
     REALM=${REALM^^}
     DOMAIN=${DOMAIN^^}
 
+    admin=$(TERM=ansi whiptail --clear --title "[ Administrator Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit --inputbox \
+    "\nPlease enter a suitable user with permission for your client to join the active directory server.\n\nDefault:  Administrator" 10 100 \
+    3>&1 1>&2 2>&3)
+
+    if [[ -z "$admin" ]];
+    then
+
+        admin=Administrator
+
+    fi
+
 
     while true;
     do
@@ -88,7 +100,7 @@ Please enter the FULL REALM NAME of the active directory server. Example:
             TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
             "[ Administrator Password ]" --msgbox "Your password does match. Please retype it again" 10 80
 
-        elif [[ "${#samba_password}" < 8 ]];
+        elif [[ "${#samba_password}" -lt 8 ]];
         then
                 TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
                 "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement." 10 80
@@ -279,8 +291,8 @@ stopservice(){
 ##.....................join domain.......................
 joindomain(){
 
-    echo "$samba_password" | kinit administrator@${REALM}
-    echo "$samba_password" | sudo net join -U Administrator@$REALM
+    echo "$samba_password" | kinit ${admin,,}@${REALM}
+    echo "$samba_password" | sudo net join -U ${admin}@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
 
