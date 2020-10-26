@@ -292,7 +292,7 @@ stopservice(){
 joindomain(){
 
     echo "$samba_password" | kinit ${admin,,}@${REALM}
-    echo "$samba_password" | sudo net join -U ${admin}@$REALM
+    echo "$samba_password" | sudo net ads join -U $admin@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
 
