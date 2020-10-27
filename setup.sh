@@ -56,7 +56,7 @@ Please enter the FULL REALM NAME of the active directory server. Example:
 
     if [[ "$DOMAIN" == *.* ]];
     then
-        DOMAIN=$(echo $DOMAIN | awk -F',' '{printf $1}')
+        DOMAIN=$(echo $DOMAIN | awk -F'.' '{printf $1}')
     fi    
 
     REALM="$DOMAIN.$secondlvl_domain"
@@ -104,10 +104,10 @@ Please enter the FULL REALM NAME of the active directory server. Example:
 
         elif [[ "${#samba_password}" -lt 8 ]];
         then
-                TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
-                "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement." 10 80
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement." 10 80
         else
-                break
+            break
         fi
 
     done
@@ -295,8 +295,8 @@ stopservice(){
 ##.....................join domain.......................
 joindomain(){
 
-    echo "$samba_password" | kinit ${admin,,}@${REALM}
-    echo "$samba_password" | sudo net ads join -U $admin@$REALM
+    echo -e "$samba_password\n" | kinit ${admin,,}@${REALM}
+    echo -e "$samba_password\n" | sudo net ads join -U $admin@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
 
