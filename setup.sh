@@ -52,13 +52,17 @@ Please enter the FULL REALM NAME of the active directory server. Example:
     DOMAIN=${REALM//"$server_hostname."}
     DOMAIN=${DOMAIN//".$secondlvl_domain"}
 
-    FULLREALM=$REALM
+    FULLREALM=$REALM 
 
     REALM="$DOMAIN.$secondlvl_domain"
 
+    if [[ "$DOMAIN" == *.* ]];
+    then
+        DOMAIN=$(echo $DOMAIN | awk -F'.' '{printf $1}')
+    fi  
+
     REALM=${REALM^^}
     DOMAIN=${DOMAIN^^}
-
 
     while true;
     do
@@ -74,6 +78,16 @@ Please enter the FULL REALM NAME of the active directory server. Example:
         fi
     done
 
+    admin=$(TERM=ansi whiptail --clear --title "[ Administrator Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
+    --nocancel --ok-button Submit --inputbox \
+    "\nPlease enter A Suitable User for your client to join the active directory server.\n\nDefault:  Administrator" 10 100 \
+    3>&1 1>&2 2>&3)
+
+    if [[ -z "$admin" ]];
+    then
+        admin=Administrator
+    fi
+
 
     while true;
     do
@@ -88,12 +102,12 @@ Please enter the FULL REALM NAME of the active directory server. Example:
             TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
             "[ Administrator Password ]" --msgbox "Your password does match. Please retype it again" 10 80
 
-        elif [[ "${#samba_password}" < 8 ]];
+        elif [[ "${#samba_password}" -lt 8 ]];
         then
-                TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
-                "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement." 10 80
+            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement." 10 80
         else
-                break
+            break
         fi
 
     done
@@ -128,7 +142,8 @@ banner(){
 ##..........................install package base.......................
 install_package_base(){
 
-    sudo pacman -Sy pacman-contrib --noconfirm
+    errorexit="false"
+    sudo pacman -Sy pacman-contrib --noconfirm 2>/dev/null >> $LOG
     progress=10
 
     for PKG in $(cat $(pwd)/package/package_x86_64)
@@ -145,10 +160,25 @@ install_package_base(){
         fi
     done
 
-    cp service/smb.service /usr/lib/systemd/system/
-    cp service/nmb.service /usr/lib/systemd/system/
-    cp service/winbind.service /usr/lib/systemd/system/
+    for PKG in $(cat $(pwd)/package/package_x86_64)
+    do
 
+        if [[ ! -n "$(pacman -Qs $PKG)" ]];
+        then 
+            echo -e "${GREEN}[ OK ]${NC} Package: $RED $PKG $NC failed to Install" >> $LOG
+            errorexit="true"
+            break
+        fi
+    done
+
+    if [[ "$errorexit" == "true" ]];
+    then
+        exit
+    else
+        cp service/smb.service /usr/lib/systemd/system/
+        cp service/nmb.service /usr/lib/systemd/system/
+        cp service/winbind.service /usr/lib/systemd/system/
+    fi
 }
 
 ##...................krb5 rename.......................
@@ -237,6 +267,8 @@ resolv(){
 
     resolvconf -u
 
+    echo -e "\n${IPADDRESS} ${REALM,,}\n" >> /etc/hosts
+
     echo -e "${GREEN}[ OK ]${NC} Configure RESOLVE successful. $NC"
 }
 
@@ -263,15 +295,15 @@ stopservice(){
 ##.....................join domain.......................
 joindomain(){
 
-    echo "$samba_password" | kinit administrator@${REALM}
-    echo "$samba_password" | sudo net join -U Administrator@$REALM
+    echo -e "$samba_password\n" | kinit ${admin,,}@${REALM}
+    echo -e "$samba_password\n" | sudo net ads join -U $admin@$REALM
     echo -e "${GREEN}[ OK ]${NC} Join domain successful"
 }
 
 ##.......................start service.....................
 startservice(){
 
-    sudo systemctl start ntpd smb nmb winbind
+    sudo systemctl start mysmb ntpd smb nmb winbind
     echo -e "${GREEN}[ OK ]${NC} Started service" 
     echo -e "${GREEN}[ OK ]${NC} Installation Completed"
 
@@ -315,14 +347,19 @@ readinput
     resolv >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring DNS Failed. Please Check log in $LOG" 
 
     banner "80" "Stopping Samba Related Service"
-    stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG" 
+    stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG"
 
-    banner "90" "Joining $REALM Domain"
+    banner "90" "Joining $REALM Domain" 
+
+} | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
+
     joindomain &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Joining Domain Failed. Please Check log in $LOG"
+
+{
 
     banner "100" "Starting Samba Related Service"
     startservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Starting Related Samba Service Failed. Please Check log in $LOG"
 
-} | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
+} | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 85
 
 clear
