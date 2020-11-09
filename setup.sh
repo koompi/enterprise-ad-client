@@ -54,12 +54,13 @@ Please enter the FULL REALM NAME of the active directory server. Example:
 
     FULLREALM=$REALM 
 
-    REALM="$DOMAIN.$secondlvl_domain"
+    REALM=${FULLREALM//"$server_hostname."}
+    # REALM="$DOMAIN.$secondlvl_domain"
 
-    if [[ "$DOMAIN" == *.* ]];
-    then
-        DOMAIN=$(echo $DOMAIN | awk -F'.' '{printf $1}')
-    fi  
+    #if [[ "$DOMAIN" == *.* ]];
+    #then
+    #    DOMAIN=$(echo $DOMAIN | awk -F'.' '{printf $1}')
+    #fi  
 
     REALM=${REALM^^}
     DOMAIN=${DOMAIN^^}
