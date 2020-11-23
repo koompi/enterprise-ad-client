@@ -186,9 +186,7 @@ install_package_base(){
 krb5(){
 
     cp $(pwd)/krb5/krb5.conf /etc/
-    grep -rli SRVREALM /etc/krb5.conf | xargs -i@ sed -i s/SRVREALM/"${server_hostname^^}.$REALM"/g @
     grep -rli REALM /etc/krb5.conf | xargs -i@ sed -i s/REALM/$REALM/g @
-    grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
     echo -e "${GREEN}[ OK ]${NC} Configuring krb5..." >> $LOG
 
 }
@@ -200,9 +198,9 @@ samba(){
     sudo cp $(pwd)/samba/pam_winbind.conf /etc/security/
     echo -e "${GREEN}[ OK ]${NC} copy config."
 
-    grep -rli SHORT_DOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/SHORT_DOMAIN/${SHORT_DOMAIN}/g @
+    grep -rli SHORTDOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/SHORTDOMAIN/${SHORT_DOMAIN}/g @
     grep -rli SMALLREALM /etc/samba/smb.conf | xargs -i@ sed -i s/SMALLREALM/${REALM,,}/g @
-    grep -rli REALM /etc/samba/smb.conf | xargs -i@ sed -i s/REALM/$REALM/g @
+    grep -rli CAPREALM /etc/samba/smb.conf | xargs -i@ sed -i s/CAPREALM/${REALM}/g @
     grep -rli HOSTNAME /etc/samba/smb.conf | xargs -i@ sed -i s/HOSTNAME/$HOSTNAME/g @
     echo -e "${GREEN}[ OK ]${NC} Configuring samba rename"
 
