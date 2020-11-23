@@ -144,7 +144,7 @@ banner(){
 install_package_base(){
 
     errorexit="false"
-    sudo pacman -Sy pacman-contrib --noconfirm 2>/dev/null >> $LOG
+    sudo pacman -Sy pacman-contrib openresolv --noconfirm 2>/dev/null >> $LOG
     progress=10
 
     for PKG in $(cat $(pwd)/package/package_x86_64)
