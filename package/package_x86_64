@@ -3,7 +3,7 @@ pam-krb5
 ntp
 bind
 krb5
-appmenu-gtk-module
+cups
 net-tools
 inetutils
 pam_mount
