@@ -40,27 +40,27 @@ readinput(){
 Please enter the FULL REALM NAME of the active directory server. Example:
 
         Server Name     =   adlab
-        Domain Name     =   koompilab
-        Realm Name      =   koompilab.org
+        Domain Name     =   internal.koompilab
+        Realm Name      =   internal.koompilab.org
 
 ----------------------------------------------------------------------------
         Full Realm Name =   adlab.koompilab.org" 15 80 3>&1 1>&2 2>&3) 
     
-    server_hostname=$(echo $REALM |awk -F'.' '{printf $1}')
-    secondlvl_domain=$(echo $REALM |awk -F'.' '{printf $NF}')
+    server_hostname=$(echo $REALM |awk -F'.' '{printf $1}') ##adlab
+    secondlvl_domain=$(echo $REALM |awk -F'.' '{printf $NF}') ##org
 
-    DOMAIN=${REALM//"$server_hostname."}
-    DOMAIN=${DOMAIN//".$secondlvl_domain"}
+    DOMAIN=${REALM//"$server_hostname."} ##internal.koompilab.org
+    DOMAIN=${DOMAIN//".$secondlvl_domain"} ##internal.koompilab
 
-    FULLREALM=$REALM 
+    FULLREALM=$REALM ##adlab.internal.koompilab.org
 
-    REALM=${FULLREALM//"$server_hostname."}
-    # REALM="$DOMAIN.$secondlvl_domain"
+    REALM=${FULLREALM//"$server_hostname."} ##internal.koompilab.org
 
-    #if [[ "$DOMAIN" == *.* ]];
-    #then
-    #    DOMAIN=$(echo $DOMAIN | awk -F'.' '{printf $1}')
-    #fi  
+    if [[ "$DOMAIN" == *.* ]];
+    then
+       SHORT_DOMAIN=$(echo $DOMAIN | awk -F'.' '{printf $1}')
+       SHORT_DOMAIN=${SHORT_DOMAIN^^} ##INTERNAL
+    fi  
 
     REALM=${REALM^^}
     DOMAIN=${DOMAIN^^}
@@ -200,7 +200,7 @@ samba(){
     sudo cp $(pwd)/samba/pam_winbind.conf /etc/security/
     echo -e "${GREEN}[ OK ]${NC} copy config."
 
-    grep -rli DOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/DOMAIN/$DOMAIN/g @
+    grep -rli SHORT_DOMAIN /etc/samba/smb.conf | xargs -i@ sed -i s/SHORT_DOMAIN/${SHORT_DOMAIN}/g @
     grep -rli SMALLREALM /etc/samba/smb.conf | xargs -i@ sed -i s/SMALLREALM/${REALM,,}/g @
     grep -rli REALM /etc/samba/smb.conf | xargs -i@ sed -i s/REALM/$REALM/g @
     grep -rli HOSTNAME /etc/samba/smb.conf | xargs -i@ sed -i s/HOSTNAME/$HOSTNAME/g @
