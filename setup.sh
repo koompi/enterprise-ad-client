@@ -176,9 +176,9 @@ install_package_base(){
     then
         exit
     else
-        cp service/smb.service /usr/lib/systemd/system/
-        cp service/nmb.service /usr/lib/systemd/system/
-        cp service/winbind.service /usr/lib/systemd/system/
+        cp service/smb.service /etc/systemd/system/
+        cp service/nmb.service /etc/systemd/system/
+        cp service/winbind.service /etc/systemd/system/
     fi
 }
 
@@ -221,13 +221,13 @@ pam_mount(){
 
 }
 ##..................mysmb service..................
-mysmb(){
+# mysmb(){
     
-    sudo cp $(pwd)/scripts/mysmb /usr/bin/mysmb
-    sudo cp $(pwd)/service/mysmb.service /usr/lib/systemd/system/
-    sudo chmod +x /usr/bin/mysmb
-    echo -e "${GREEN}[ OK ]${NC} Configuring necessary service" 
-}
+#     sudo cp $(pwd)/scripts/mysmb /usr/bin/mysmb
+#     sudo cp $(pwd)/service/mysmb.service /usr/lib/systemd/system/
+#     sudo chmod +x /usr/bin/mysmb
+#     echo -e "${GREEN}[ OK ]${NC} Configuring necessary service" 
+# }
 
 ##..................nsswitch..................
 nsswitch(){
@@ -282,15 +282,6 @@ ntp(){
 
 }
 
-##........................stop service...................
-stopservice(){
-
-    sudo systemctl enable ntpd smb nmb winbind mysmb 
-    sudo systemctl stop ntpd smb nmb winbind mysmb
-    echo -e "${GREEN}[ OK ]${NC} Stoped service"
-
-}
-
 ##.....................join domain.......................
 joindomain(){
 
@@ -300,8 +291,14 @@ joindomain(){
 }
 
 ##.......................start service.....................
-startservice(){
+service(){
 
+    sudo ln -sf /etc/systemd/system/nmb.service /etc/systemd/system/multi-user.target.wants/
+    sudo ln -sf /etc/systemd/system/smb.service /etc/systemd/system/multi-user.target.wants/
+    sudo ln -sf /etc/systemd/system/winbind.service /etc/systemd/system/multi-user.target.wants/
+    echo -e "${GREEN}[ OK ]${NC} Enabled service at Startup" 
+    sudo systemctl stop ntpd smb nmb winbind mysmb
+    echo -e "${GREEN}[ OK ]${NC} Stopped service" 
     sudo systemctl start mysmb ntpd smb nmb winbind
     echo -e "${GREEN}[ OK ]${NC} Started service" 
     echo -e "${GREEN}[ OK ]${NC} Installation Completed"
@@ -345,10 +342,10 @@ readinput
     banner "75" "Configuring Dynamic Name Service Resolver"
     resolv >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring DNS Failed. Please Check log in $LOG" 
 
-    banner "80" "Stopping Samba Related Service"
-    stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG"
+    # banner "80" "Stopping Samba Related Service"
+    # stopservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Stopping Related Samba Service Failed. Please Check log in $LOG"
 
-    banner "90" "Joining $REALM Domain" 
+    banner "80" "Joining $REALM Domain" 
 
 } | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 0
 
@@ -356,8 +353,8 @@ readinput
 
 {
 
-    banner "100" "Starting Samba Related Service"
-    startservice &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Starting Related Samba Service Failed. Please Check log in $LOG"
+    banner "95" "Starting Samba Related Service"
+    service &>> $LOG || echo -e "${RED}[ FAILED ]${NC} Starting Related Samba Service Failed. Please Check log in $LOG"
 
 } | whiptail --clear --title "[ KOOMPI AD Server ]" --gauge "Please wait while installing" 10 100 85
 
