@@ -329,8 +329,8 @@ readinput
     banner "50" "Configuring Auto-mount Storage Drives Settings"
     pam_mount >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring PAM Mount Failed. Please Check log in $LOG" 
 
-    banner "55" "Configuring Samba Helper Service"
-    mysmb >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Samba Helper Failed. Please Check log in $LOG" 
+    # banner "55" "Configuring Samba Helper Service"
+    # mysmb >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Samba Helper Failed. Please Check log in $LOG" 
 
     banner "65" "Configuring Name Service Swtich"
     nsswitch >> $LOG || echo -e "${RED}[ FAILED ]${NC} Configuring Name Service Switch Failed. Please Check log in $LOG" 
