@@ -1,5 +1,0 @@
-#!/bin/bash
-
-sudo pacman -S lightdm lightdm-gtk-greeter lightdm-gtk-greeter-settings
-pi -S elementary-xfce-icons
-pi -S numix-gtk-theme
