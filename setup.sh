@@ -14,9 +14,7 @@ createlog(){
 
     ## syncronize time
 
-    timedatectl set-timezone Asia/Phnom_Penh
-    timedatectl set-ntp 1
-    timedatectl
+    sudo ln -sf /usr/share/zoneinfo/Asia/Phnom_Penh /etc/localtime
 
     NOW=$(date +"%m-%d-%Y-%T")
     mkdir -p /klab/
