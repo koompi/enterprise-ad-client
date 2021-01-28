@@ -39,12 +39,12 @@ readinput(){
     --title "[ Realm Selection ]" --nocancel --ok-button Submit  --inputbox "                                       
 Please enter the FULL REALM NAME of the active directory server. Example:
 
-        Server Name     =   adlab
-        Domain Name     =   internal.koompilab
-        Realm Name      =   internal.koompilab.org
+        Server Name     =   master
+        Domain Name     =   enpad.koomilab
+        Realm Name      =   enpad.koompilab.org
 
 ----------------------------------------------------------------------------
-        Full Realm Name =   adlab.koompilab.org" 15 80 3>&1 1>&2 2>&3) 
+        Full Realm Name =   master.enpad.koompilab.org" 15 80 3>&1 1>&2 2>&3) 
     
     server_hostname=$(echo $REALM |awk -F'.' '{printf $1}') ##adlab
     secondlvl_domain=$(echo $REALM |awk -F'.' '{printf $NF}') ##org
@@ -69,7 +69,7 @@ Please enter the FULL REALM NAME of the active directory server. Example:
     do
         IPADDRESS=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
         --title "[ IP of Domain ]" --nocancel --ok-button Submit --inputbox \
-        "\nPlease enter the IP of the active directory server\nExample:  172.16.1.1\n" 8 80 3>&1 1>&2 2>&3)
+        "\nPlease enter the IP of the Active Directory Server\n\nExample:  192.168.1.1\n" 10 80 3>&1 1>&2 2>&3)
         if [[ $IPADDRESS =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
         then
             break
@@ -186,7 +186,10 @@ install_package_base(){
 krb5(){
 
     cp $(pwd)/krb5/krb5.conf /etc/
-    grep -rli REALM /etc/krb5.conf | xargs -i@ sed -i s/REALM/$REALM/g @
+    grep -rli CAPREALM /etc/krb5.conf | xargs -i@ sed -i s/CAPREALM/$REALM/g @
+    grep -rli FULLREALM /etc/krb5.conf | xargs -i@ sed -i s/FULLREALM/$FULLREALM/g @
+    grep -rli SREALM /etc/krb5.conf | xargs -i@ sed -i s/SREALM/${REALM,,}/g @
+    grep -rli DOMAIN /etc/krb5.conf | xargs -i@ sed -i s/DOMAIN/$SHORT_DOMAIN/g @
     echo -e "${GREEN}[ OK ]${NC} Configuring krb5..." >> $LOG
 
 }
@@ -236,7 +239,11 @@ nsswitch(){
 ##..................pam authentication...............
 pam(){
 
-    sudo cp $(pwd)/pam.d/* /etc/pam.d/
+    mv /etc/pam.d/su{,.default}
+    mv /etc/pam.d/system-auth{,.default}
+    mv /etc/pam.d/system-login{,.default}
+    echo -e "${GREEN}[ OK ]${NC} Backup Current pam.d Configuration" 
+    cp $(pwd)/pam.d/* /etc/pam.d/
     echo -e "${GREEN}[ OK ]${NC} Configuring pam.d"
 }
 
@@ -256,13 +263,6 @@ resolv(){
     grep -rli REALM ${RESOLVCONF_FILE} | xargs -i@ sed -i s+REALM+${REALM,,}+g @
     grep -rli NAMESERVER ${RESOLVCONF_FILE} | xargs -i@ sed -i s+NAMESERVER+${IPADDRESS}+g @
     echo -e "${GREEN}[ OK ]${NC} Configuring resolvconf.conf"
-
-    #resolv
-    echo "search ${REALM,,}" > ${RESOLV_FILE}
-    echo "nameserver ${IPADDRESS}" >> ${RESOLV_FILE}
-    echo "nameserver 8.8.8.8" >> ${RESOLV_FILE}
-    echo "nameserver 8.8.4.4" >> ${RESOLV_FILE}
-    echo -e "${GREEN}[ OK ]${NC} Configuring resolv.conf"
 
     resolvconf -u
 
