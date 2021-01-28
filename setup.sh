@@ -297,9 +297,9 @@ service(){
     sudo ln -sf /etc/systemd/system/smb.service /etc/systemd/system/multi-user.target.wants/
     sudo ln -sf /etc/systemd/system/winbind.service /etc/systemd/system/multi-user.target.wants/
     echo -e "${GREEN}[ OK ]${NC} Enabled service at Startup" 
-    sudo systemctl stop ntpd smb nmb winbind mysmb
+    sudo systemctl stop ntpd smb nmb winbind
     echo -e "${GREEN}[ OK ]${NC} Stopped service" 
-    sudo systemctl start mysmb ntpd smb nmb winbind
+    sudo systemctl start ntpd smb nmb winbind
     echo -e "${GREEN}[ OK ]${NC} Started service" 
     echo -e "${GREEN}[ OK ]${NC} Installation Completed"
 
