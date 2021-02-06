@@ -28,12 +28,12 @@ createlog(){
 ##.................read input..................
 readinput(){
 
-    hostname=$(TERM=ansi whiptail --clear --title "[ Hostname Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
+    hostname=$(whiptail --clear --title "[ Hostname Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
     --nocancel --ok-button Submit --inputbox \
     "\nPlease enter a suitable new hostname for your client to join the active directory server.\n\nExample:  adclient-01\n" 10 100 \
     3>&1 1>&2 2>&3)
 
-    REALM=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
+    REALM=$(whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
     --title "[ Realm Selection ]" --nocancel --ok-button Submit  --inputbox "                                       
 Please enter the FULL REALM NAME of the active directory server. Example:
 
@@ -65,19 +65,19 @@ Please enter the FULL REALM NAME of the active directory server. Example:
 
     while true;
     do
-        IPADDRESS=$(TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
+        IPADDRESS=$(whiptail --clear --backtitle "Samba Active Directory Domain Controller" \
         --title "[ IP of Domain ]" --nocancel --ok-button Submit --inputbox \
         "\nPlease enter the IP of the Active Directory Server\n\nExample:  192.168.1.1\n" 10 80 3>&1 1>&2 2>&3)
         if [[ $IPADDRESS =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]];
         then
             break
         else
-            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
             "[ IP for Domain ]" --msgbox "Your IP isn't valid. A valid IP should looks like XXX.XXX.XXX.XXX" 10 80
         fi
     done
 
-    admin=$(TERM=ansi whiptail --clear --title "[ Administrator Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
+    admin=$(whiptail --clear --title "[ Administrator Selection ]"  --backtitle "Samba Active Directory Domain Controller" \
     --nocancel --ok-button Submit --inputbox \
     "\nPlease enter A Suitable User for your client to join the active directory server.\n\nDefault:  Administrator" 10 100 \
     3>&1 1>&2 2>&3)
@@ -90,20 +90,20 @@ Please enter the FULL REALM NAME of the active directory server. Example:
 
     while true;
     do
-        samba_password=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --nocancel --ok-button Submit --passwordbox \
+        samba_password=$(whiptail --clear --title "[ Administrator Password ]" --nocancel --ok-button Submit --passwordbox \
         "\nPlease enter Administrator password for joining domain\n" 10 80 3>&1 1>&2 2>&3)
 
-        samba_password_again=$(TERM=ansi whiptail --clear --title "[ Administrator Password ]" --nocancel --ok-button Submit \
+        samba_password_again=$(whiptail --clear --title "[ Administrator Password ]" --nocancel --ok-button Submit \
         --passwordbox "\nPlease enter Administrator password again" 10 80  3>&1 1>&2 2>&3)
 
         if  [[ "$samba_password" != "$samba_password_again" ]];
         then
-            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
             "[ Administrator Password ]" --msgbox "Your password does match. Please retype it again" 10 80
 
         elif [[ "${#samba_password}" -lt 8 ]];
         then
-            TERM=ansi whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
+            whiptail --clear --backtitle "Samba Active Directory Domain Controller" --title \
             "[ Administrator Password ]" --msgbox "Your password does not meet the length requirement." 10 80
         else
             break
